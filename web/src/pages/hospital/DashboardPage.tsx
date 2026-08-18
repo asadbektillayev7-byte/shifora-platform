@@ -3,7 +3,7 @@ import { uz } from '../../lib/uz'
 import { useAuth } from '../../lib/auth'
 import { useApi } from '../../lib/hooks'
 import { Button, Card, Loading, Notice, SeverityBadge } from '../../components/ui'
-import type { AlertItem } from '../../lib/types'
+import type { AlertItem, QuestionRecord } from '../../lib/types'
 import { timeAgo } from '../../lib/format'
 
 interface Stats {
@@ -26,6 +26,7 @@ export function DashboardPage() {
   const navigate = useNavigate()
   const { data: stats, loading } = useApi<Stats>('/patients/stats')
   const { data: alerts } = useApi<{ alerts: AlertItem[] }>('/alerts?status=open&limit=8')
+  const { data: queue } = useApi<{ questions: QuestionRecord[] }>('/questions?status=unanswered&limit=5')
 
   if (loading || !stats) return <Loading />
 
@@ -88,6 +89,48 @@ export function DashboardPage() {
                 onClick={() => navigate(`/shifoxona/ogohlantirishlar?alert=${alert.id}`)}
               >
                 {uz.alerts.review}
+              </Button>
+            </div>
+          ))
+        )}
+      </Card>
+
+      <Card
+        title={uz.questions.dashboardTitle}
+        action={
+          <Link to="/shifoxona/savollar">
+            <Button size="sm">{uz.questions.viewAll}</Button>
+          </Link>
+        }
+        flush
+      >
+        {!queue || queue.questions.length === 0 ? (
+          <div className="empty">
+            <span className="empty__icon" aria-hidden>💬</span>
+            <div className="empty__title">{uz.questions.empty}</div>
+          </div>
+        ) : (
+          queue.questions.map((q) => (
+            <div className="alert-row" key={q.id}>
+              <span className="alert-row__bar alert-row__bar--warning" aria-hidden />
+              <div className="alert-row__body">
+                <div className="row--between">
+                  <div>
+                    <div className="alert-row__title">{q.last_name} {q.first_name}</div>
+                    <div className="alert-row__detail">{q.question}</div>
+                  </div>
+                  {q.priority === 'urgent' ? <SeverityBadge severity="urgent" /> : null}
+                </div>
+                <div className="alert-row__meta">
+                  <span>🕒 {timeAgo(q.created_at)}</span>
+                </div>
+              </div>
+              <Button
+                size="sm"
+                variant="primary"
+                onClick={() => navigate('/shifoxona/savollar')}
+              >
+                {uz.questions.sendAnswer}
               </Button>
             </div>
           ))

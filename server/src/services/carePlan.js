@@ -122,8 +122,8 @@ export async function createDraftPlan(patientId, payload, user) {
       const medId = await insert(
         `INSERT INTO medications
            (care_plan_id, name, dose, unit, doses_per_day, schedule_type, priority,
-            start_date, end_date, notes, created_by)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            start_date, end_date, notes, reminders_enabled, created_by)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         planId,
         med.name,
         String(med.dose),
@@ -134,6 +134,7 @@ export async function createDraftPlan(patientId, payload, user) {
         med.start_date ?? payload.start_date ?? toDateKey(),
         med.end_date ?? null,
         med.notes ?? null,
+        med.reminders_enabled === false ? 0 : 1,
         user?.id ?? null,
       );
       for (const time of times) {

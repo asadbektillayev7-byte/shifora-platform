@@ -226,3 +226,90 @@ export interface NotificationItem {
   entity_type: string | null
   entity_id: number | null
 }
+
+export type QuestionStatus = 'unanswered' | 'assigned' | 'answered' | 'closed'
+export type QuestionPriority = 'normal' | 'high' | 'urgent'
+
+export interface AssistantStats {
+  count: number
+  unit: string
+  avg: number | null
+  min: number | null
+  max: number | null
+  change: number | null
+  first_value: number | null
+  last_value: number | null
+  days: number
+  in_range_pct: number | null
+  readings: { value: number; measured_at: string; context: string }[]
+}
+
+export interface AssistantSource {
+  source_key: string
+  source_title: string
+  retrieval_score: number | null
+  note: string | null
+}
+
+export interface AssistantAnswer {
+  question_id: number | null
+  answer: string
+  can_answer: boolean
+  refused: boolean
+  queued: boolean
+  priority: QuestionPriority
+  status: QuestionStatus | null
+  disclaimer: string
+  alert_id?: number | null
+  stats?: AssistantStats
+  sources?: AssistantSource[]
+  ranges?: { low: number | null; high: number | null; unit: string }
+}
+
+export interface QuestionRecord {
+  id: number
+  patient_id: number
+  question: string
+  language: string
+  status: QuestionStatus
+  priority: QuestionPriority
+  ai_attempted: number
+  ai_answer: string | null
+  refused: number
+  refusal_reason: string | null
+  answer: string | null
+  answer_source: string | null
+  assigned_to: number | null
+  assigned_name?: string | null
+  answered_by: number | null
+  answered_by_name?: string | null
+  alert_id: number | null
+  created_at: string
+  answered_at: string | null
+  first_name?: string
+  last_name?: string
+  patient_phone?: string
+}
+
+export interface QuestionNote {
+  id: number
+  question_id: number
+  note: string
+  created_by: number
+  author?: string
+  created_at: string
+}
+
+export interface PatientContext {
+  glucose_trend: { all: AssistantStats; fasting: AssistantStats }
+  medications: (Medication & { reminders_enabled: number; time_of_day?: string })[]
+  active_plan: { id: number; version: number; approved_at: string | null } | null
+  lab_results: { kind: string; value: number; unit: string; context: string; measured_at: string }[]
+  recent_alerts: { id: number; title: string; severity: Severity; status: AlertState; created_at: string }[]
+}
+
+export interface QuestionDetail extends QuestionRecord {
+  references: AssistantSource[]
+  notes: QuestionNote[]
+  patient_context?: PatientContext
+}

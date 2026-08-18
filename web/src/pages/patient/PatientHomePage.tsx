@@ -33,7 +33,7 @@ export function PatientHomePage() {
 
   if (loading || !data) return <Loading />
 
-  async function act(item: PlanItem, action: 'take' | 'snooze') {
+  async function act(item: PlanItem, action: 'take' | 'snooze' | 'missed') {
     setBusyId(item.id)
     try {
       const result = await api.post<{ snoozed_until?: string; minutes?: number }>(
@@ -43,10 +43,12 @@ export function PatientHomePage() {
       setToast(
         action === 'take'
           ? { tone: 'success', text: `✅ ${uz.patientHome.taken}` }
-          : {
-              tone: 'warning',
-              text: `🕒 ${uz.patientHome.snoozed(formatTime(result.snoozed_until))}`,
-            },
+          : action === 'snooze'
+            ? {
+                tone: 'warning',
+                text: `🕒 ${uz.patientHome.snoozed(formatTime(result.snoozed_until))}`,
+              }
+            : { tone: 'warning', text: `⚠️ ${uz.patientHome.missed}` },
       )
     } finally {
       setBusyId(null)
@@ -147,6 +149,16 @@ export function PatientHomePage() {
                                   onClick={() => void act(item, 'snooze')}
                                 >
                                   🕒 {uz.patientHome.later}
+                                </Button>
+                              ) : null}
+                              {item.status !== 'missed' ? (
+                                <Button
+                                  variant="ghost"
+                                  size="lg"
+                                  disabled={busyId === item.id}
+                                  onClick={() => void act(item, 'missed')}
+                                >
+                                  ✖ {uz.patientHome.missed}
                                 </Button>
                               ) : null}
                             </>

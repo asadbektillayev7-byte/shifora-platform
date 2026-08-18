@@ -46,6 +46,25 @@ router.post(
   }),
 );
 
+/** The patient can also record that they did not take the dose. */
+router.post(
+  '/:id/missed',
+  wrap(async (req, res) => {
+    const dose = await loadDose(req);
+    if (dose.status === 'taken') throw badRequest('Bu dori allaqachon qabul qilingan deb belgilangan.');
+    if (dose.status === 'missed') return res.json({ ok: true, status: 'missed' });
+
+    await run(
+      `UPDATE medication_doses
+          SET status = 'missed', snoozed_until = NULL, updated_at = datetime('now'), escalated_at = datetime('now')
+        WHERE id = ?`,
+      dose.id,
+    );
+    await audit(req, 'dose.missed', 'medication_dose', dose.id, { patient_id: dose.patient_id });
+    res.json({ ok: true, status: 'missed' });
+  }),
+);
+
 /** "Kechroq" — postpones by the interval configured on the care plan. */
 router.post(
   '/:id/snooze',

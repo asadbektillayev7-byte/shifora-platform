@@ -724,6 +724,39 @@ a:hover { text-decoration: underline; }
 .chart__key { display: inline-flex; align-items: center; gap: 6px; }
 .chart__swatch { width: 11px; height: 11px; border-radius: 3px; }
 
+/* ------------------------------------------------------ assistant & queue */
+
+.assistant-bubble {
+  padding: 14px 16px;
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+  background: var(--surface);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.assistant-bubble--answer { border-left: 4px solid var(--teal-600); }
+.assistant-bubble--refused { border-left: 4px solid var(--amber-700); background: var(--amber-50); }
+.assistant-stats { display: flex; flex-direction: column; gap: 4px; }
+.assistant-sources { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.assistant-chip {
+  cursor: pointer;
+  font-size: 0.85rem;
+  color: var(--teal-700);
+  background: var(--teal-50);
+  border: 1px solid var(--teal-100);
+  border-radius: 999px;
+  padding: 4px 10px;
+  user-select: none;
+}
+.assistant-chip:hover { background: var(--teal-100); }
+.question-bubble {
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
 /* ------------------------------------------------------------ responsive */
 
 @media (max-width: 900px) {

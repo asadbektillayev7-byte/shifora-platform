@@ -217,6 +217,10 @@ CREATE TABLE IF NOT EXISTS medication_schedules (
 );
 CREATE INDEX IF NOT EXISTS idx_med_sched_med ON medication_schedules(medication_id);
 
+-- A medication can be defined but reminder delivery tuned off per item.
+-- The care plan still controls repeat/snooze/escalation timing globally.
+ALTER TABLE medications ADD COLUMN IF NOT EXISTS reminders_enabled INTEGER NOT NULL DEFAULT 1;
+
 -- type: glucose | blood_pressure | symptom
 CREATE TABLE IF NOT EXISTS monitoring_configs (
   id                SERIAL PRIMARY KEY,
@@ -437,6 +441,87 @@ CREATE TABLE IF NOT EXISTS ai_recommendations (
   created_by   INTEGER REFERENCES users(id)
 );
 CREATE INDEX IF NOT EXISTS idx_ai_patient ON ai_recommendations(patient_id, created_at);
+
+-- ---------------------------------------------------------------------------
+-- Approved guidance catalogue and the unanswered-question queue
+-- ---------------------------------------------------------------------------
+
+-- Catalogue of official guidance bodies whose monitoring guidance is encoded
+-- into each care plan's approved alert_rules. This table is metadata only:
+-- the actual thresholds are per-patient, staff-approved values in alert_rules.
+CREATE TABLE IF NOT EXISTS guidance_sources (
+  id          SERIAL PRIMARY KEY,
+  source_key  TEXT NOT NULL UNIQUE,       -- who | ada | idf | nhs | uz_moh | hospital_protocol
+  title       TEXT NOT NULL,
+  scope       TEXT NOT NULL,              -- which guidance this source covers
+  description TEXT,
+  created_at  TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+-- Seeded, read-only catalogue. Thresholds are never stored here.
+INSERT INTO guidance_sources (source_key, title, scope, description) VALUES
+  ('who',         'World Health Organization (WHO)',         'glyukoza_monitoring', 'Glyukoza kuzatuvi bo‘yicha umumiy monitoring tavsiyalari'),
+  ('ada',         'American Diabetes Association (ADA)',     'glyukoza_monitoring', 'Kunlik glyukoza maqsadli yo‘laklari bo‘yicha monitoring tavsiyalari'),
+  ('idf',         'International Diabetes Federation (IDF)', 'glyukoza_monitoring', 'Diabet bilan yashovchilar uchun kuzatuv tavsiyalari'),
+  ('nhs',         'NHS England',                             'glyukoza_monitoring', 'Uy sharoitida glyukoza kuzatuvi bo‘yicha amaliy qo‘llanma'),
+  ('uz_moh',      'O‘zbekiston Respublikasi Sog‘liqni saqlash vazirligi', 'glyukoza_monitoring', 'Milliy klinik protokollar'),
+  ('hospital_protocol', 'Shifora shifoxona protokoli', 'glyukoza_monitoring', 'Shifoxona tomonidan tasdiqlangan kuzatuv protokoli')
+ON CONFLICT (source_key) DO NOTHING;
+
+-- The safety queue. Every AI question that cannot be answered with approved,
+-- sufficient data lands here instead of disappearing.
+-- status:  unanswered | assigned | answered | closed
+-- priority: normal | high | urgent   (urgent only via explicit emergency rules
+--           or clinician-defined protocols — never by AI judgement)
+CREATE TABLE IF NOT EXISTS patient_questions (
+  id              SERIAL PRIMARY KEY,
+  patient_id      INTEGER NOT NULL REFERENCES patients(id) ON DELETE CASCADE,
+  question        TEXT NOT NULL,
+  language        TEXT NOT NULL DEFAULT 'uz',
+  status          TEXT NOT NULL DEFAULT 'unanswered',
+  priority        TEXT NOT NULL DEFAULT 'normal',
+  ai_attempted    INTEGER NOT NULL DEFAULT 0,
+  ai_answer       TEXT,
+  refused         INTEGER NOT NULL DEFAULT 0,
+  refusal_reason  TEXT,
+  answer_source   TEXT,                    -- 'hospital_staff_answer' once answered
+  assigned_to     INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  alert_id        INTEGER REFERENCES alerts(id) ON DELETE SET NULL,
+  created_by      INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  created_at      TEXT NOT NULL DEFAULT (datetime('now')),
+  answered_at     TEXT,
+  answer          TEXT,
+  answered_by     INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  updated_at      TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_pq_patient ON patient_questions(patient_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_pq_status ON patient_questions(status, priority);
+CREATE INDEX IF NOT EXISTS idx_pq_assigned ON patient_questions(assigned_to, status);
+
+-- For databases created before created_by existed; no-op when already applied.
+ALTER TABLE patient_questions ADD COLUMN IF NOT EXISTS created_by INTEGER REFERENCES users(id) ON DELETE SET NULL;
+
+-- Audit trail of what the assistant retrieved and how confident it was.
+CREATE TABLE IF NOT EXISTS question_references (
+  id              SERIAL PRIMARY KEY,
+  question_id     INTEGER NOT NULL REFERENCES patient_questions(id) ON DELETE CASCADE,
+  source_key      TEXT NOT NULL,
+  source_title    TEXT NOT NULL,
+  retrieval_score DOUBLE PRECISION,
+  note            TEXT,
+  created_at      TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_qref_question ON question_references(question_id);
+
+-- Internal staff notes on a queued question. Never shown to the patient.
+CREATE TABLE IF NOT EXISTS question_notes (
+  id          SERIAL PRIMARY KEY,
+  question_id INTEGER NOT NULL REFERENCES patient_questions(id) ON DELETE CASCADE,
+  note        TEXT NOT NULL,
+  created_at  TEXT NOT NULL DEFAULT (datetime('now')),
+  created_by  INTEGER NOT NULL REFERENCES users(id)
+);
+CREATE INDEX IF NOT EXISTS idx_qnotes_question ON question_notes(question_id);
 
 -- ---------------------------------------------------------------------------
 -- Audit trail

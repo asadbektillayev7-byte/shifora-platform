@@ -53,7 +53,7 @@ async function sendDoseReminder(dose, medication, patient, attempt) {
 
 async function processMedicationDoses(now) {
   const doses = await all(
-    `SELECT d.*, m.name, m.dose, m.unit, m.priority,
+    `SELECT d.*, m.name, m.dose, m.unit, m.priority, m.reminders_enabled,
             p.id AS p_id, p.user_id, p.first_name, p.last_name, p.hospital_id,
             cp.reminder_repeat_minutes, cp.reminder_max_count,
             cp.escalate_normal_minutes, cp.escalate_important_minutes, cp.escalate_critical_minutes
@@ -90,6 +90,11 @@ async function processMedicationDoses(now) {
       escalate_important_minutes: row.escalate_important_minutes,
       escalate_critical_minutes: row.escalate_critical_minutes,
     };
+
+    // A medication with reminders disabled still appears in the plan — the
+    // patient can still record taking it — but the engine neither reminds nor
+    // escalates it.
+    if (Number(row.reminders_enabled) === 0) continue;
 
     const overdue = minutesBetween(row.scheduled_at, now);
 

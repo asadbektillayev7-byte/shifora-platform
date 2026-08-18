@@ -8,6 +8,7 @@ import { PatientListPage } from './PatientListPage'
 import { RegisterPatientPage } from './RegisterPatientPage'
 import { CarePlansPage } from './CarePlansPage'
 import { AlertCenterPage } from './AlertCenterPage'
+import { QuestionsPage } from './QuestionsPage'
 import { ReportsPage } from './ReportsPage'
 import { PatientProfilePage } from './PatientProfilePage'
 
@@ -19,6 +20,7 @@ const TITLES: { match: RegExp; title: string }[] = [
   { match: /^\/shifoxona\/royxat/, title: uz.nav.hospital.register },
   { match: /^\/shifoxona\/rejalar/, title: uz.nav.hospital.carePlans },
   { match: /^\/shifoxona\/ogohlantirishlar/, title: uz.nav.hospital.alerts },
+  { match: /^\/shifoxona\/savollar/, title: uz.nav.hospital.questions },
   { match: /^\/shifoxona\/hisobotlar/, title: uz.nav.hospital.reports },
   { match: /^\/shifoxona/, title: uz.nav.hospital.home },
 ]
@@ -27,6 +29,7 @@ export function HospitalApp() {
   const { session } = useAuth()
   const location = useLocation()
   const { data: stats } = useApi<{ urgent: number; open_alerts: number }>('/patients/stats')
+  const { data: queue } = useApi<{ counts: { unanswered: number } }>('/questions?limit=1')
 
   const title = TITLES.find((entry) => entry.match.test(location.pathname))?.title ?? uz.app.name
 
@@ -36,6 +39,7 @@ export function HospitalApp() {
     { to: `${BASE}/royxat`, label: uz.nav.hospital.register, icon: '➕' },
     { to: `${BASE}/rejalar`, label: uz.nav.hospital.carePlans, icon: '📋' },
     { to: `${BASE}/ogohlantirishlar`, label: uz.nav.hospital.alerts, icon: '🔔', badge: stats?.open_alerts },
+    { to: `${BASE}/savollar`, label: uz.nav.hospital.questions, icon: '❓', badge: queue?.counts.unanswered },
     { to: `${BASE}/hisobotlar`, label: uz.nav.hospital.reports, icon: '📊' },
   ]
 
@@ -52,6 +56,7 @@ export function HospitalApp() {
         <Route path="royxat" element={<RegisterPatientPage />} />
         <Route path="rejalar" element={<CarePlansPage />} />
         <Route path="ogohlantirishlar" element={<AlertCenterPage />} />
+        <Route path="savollar" element={<QuestionsPage />} />
         <Route path="hisobotlar" element={<ReportsPage />} />
         <Route path="*" element={<DashboardPage />} />
       </Routes>
