@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { uz } from '../../lib/uz'
+import { useLanguage } from '../../lib/i18n'
 import { useApi } from '../../lib/hooks'
-import { Badge, Card, Empty, Loading, Select, SeverityBadge } from '../../components/ui'
+import { Badge, Card, Empty, ErrorState, Loading, Select, SeverityBadge } from '../../components/ui'
 import { AdherenceBarChart, GlucoseLineChart } from '../../components/charts'
 import type { AlertItem, BloodPressureReading, GlucoseReading, PatientListItem, SymptomCheck } from '../../lib/types'
 import { formatDateTime } from '../../lib/format'
@@ -21,21 +22,21 @@ interface Report {
   alerts: { count: number; urgent: number; items: AlertItem[] }
 }
 
-const PERIODS = [
-  { days: 7, label: uz.reports.d7 },
-  { days: 14, label: uz.reports.d14 },
-  { days: 30, label: uz.reports.d30 },
-]
-
 export function ReportsPage() {
+  const { locale } = useLanguage()
+  const PERIODS = [
+    { days: 7, label: uz.reports.d7 },
+    { days: 14, label: uz.reports.d14 },
+    { days: 30, label: uz.reports.d30 },
+  ]
   const [params] = useSearchParams()
   const [patientId, setPatientId] = useState(params.get('patient') ?? '')
   const [days, setDays] = useState(7)
 
-  const { data: patients } = useApi<{ patients: PatientListItem[] }>('/patients')
-  const { data: report, loading } = useApi<Report>(
+  const { data: patients, error: patientsError, reload: reloadPatients } = useApi<{ patients: PatientListItem[] }>('/patients')
+  const { data: report, loading, error, reload } = useApi<Report>(
     patientId ? `/patients/${patientId}/report?days=${days}` : null,
-    [patientId, days],
+    [patientId, days, locale],
   )
 
   return (
@@ -60,6 +61,7 @@ export function ReportsPage() {
                 <button
                   key={period.days}
                   className={`chip ${days === period.days ? 'chip--on' : ''}`}
+                  aria-pressed={days === period.days}
                   onClick={() => setDays(period.days)}
                 >
                   {period.label}
@@ -69,23 +71,26 @@ export function ReportsPage() {
           </div>
         </div>
       </Card>
+      {patientsError ? <ErrorState message={patientsError} retry={() => void reloadPatients()} /> : null}
 
       {!patientId ? (
-        <Card><Empty icon="📊" title={uz.reports.choosePatient} /></Card>
+        <Card><Empty icon="chart" title={uz.reports.choosePatient} /></Card>
+      ) : error ? (
+        <ErrorState message={error} retry={() => void reload()} />
       ) : loading || !report ? (
         <Loading />
       ) : (
         <>
           <div className="stats">
             <div className="stat">
-              <div className="stat__label">💊 {uz.reports.adherence}</div>
+              <div className="stat__label">{uz.reports.adherence}</div>
               <div className="stat__value">{report.adherence.rate === null ? '—' : `${report.adherence.rate}%`}</div>
               <div className="small muted">
                 {uz.reports.taken}: {report.adherence.taken} · {uz.reports.missed}: {report.adherence.missed}
               </div>
             </div>
             <div className="stat">
-              <div className="stat__label">🩸 {uz.reports.glucoseEntries}</div>
+              <div className="stat__label">{uz.reports.glucoseEntries}</div>
               <div className="stat__value">{report.glucose.count}</div>
               <div className="small muted">
                 {report.glucose.average
@@ -94,13 +99,13 @@ export function ReportsPage() {
               </div>
             </div>
             <div className="stat">
-              <div className="stat__label">🫀 {uz.reports.bpEntries}</div>
+              <div className="stat__label">{uz.reports.bpEntries}</div>
               <div className="stat__value">{report.blood_pressure.count}</div>
             </div>
             <div className="stat">
-              <div className="stat__label">🔔 {uz.reports.alertsCount}</div>
+              <div className="stat__label">{uz.reports.alertsCount}</div>
               <div className="stat__value">{report.alerts.count}</div>
-              <div className="small muted">🔴 {report.alerts.urgent}</div>
+              <div className="small muted">{uz.status.urgentShort}: {report.alerts.urgent}</div>
             </div>
           </div>
 
@@ -115,7 +120,7 @@ export function ReportsPage() {
           <div className="grid2">
             <Card title={uz.reports.symptomReports} flush>
               {report.symptoms.checks.length === 0 ? (
-                <Empty icon="💬" title={uz.reports.noData} />
+                <Empty icon="message" title={uz.reports.noData} />
               ) : (
                 <div className="table-wrap">
                   <table className="table">
@@ -138,7 +143,7 @@ export function ReportsPage() {
 
             <Card title={uz.reports.alertsCount} flush>
               {report.alerts.items.length === 0 ? (
-                <Empty icon="✅" title={uz.reports.noData} />
+                <Empty icon="check" title={uz.reports.noData} />
               ) : (
                 <div className="table-wrap">
                   <table className="table">

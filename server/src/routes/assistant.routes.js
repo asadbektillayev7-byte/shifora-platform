@@ -32,9 +32,10 @@ router.post(
     const outcome = await assistantAnswer({
       patientId: patient.id,
       question,
-      language: patient.language ?? 'uz',
+      language: ['uz', 'ru'].includes(req.body?.language) ? req.body.language : patient.language ?? 'uz',
       user: req.user,
       glucoseDays: Math.min(Number(req.body?.days) || 7, 30),
+      staffOnly: req.body?.staff_only === true,
     });
     res.status(200).json(outcome);
   }),

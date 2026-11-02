@@ -223,11 +223,12 @@ export async function createQuestion({ patientId, question, language = 'uz', ai,
     `INSERT INTO patient_questions
        (patient_id, question, language, status, priority, ai_attempted, ai_answer,
         refused, refusal_reason, answer_source, alert_id, created_by)
-     VALUES (?, ?, ?, 'unanswered', ?, 1, ?, ?, ?, NULL, ?, ?)`,
+     VALUES (?, ?, ?, 'unanswered', ?, ?, ?, ?, ?, NULL, ?, ?)`,
     patientId,
     question,
     language,
     ai.priority ?? 'normal',
+    ai.attempted === false ? 0 : 1,
     ai.answer ?? null,
     ai.refused ? 1 : 0,
     ai.refusal_reason ?? null,
@@ -284,7 +285,7 @@ const refusedReply = (qid, priority) => ({
  * The assistant entry point. Returns exactly what the client should show.
  * Queued questions are persisted for staff; confidently-answered ones are not.
  */
-export async function assistantAnswer({ patientId, question, language = 'uz', user, glucoseDays = 7 }) {
+export async function assistantAnswer({ patientId, question, language = 'uz', user, glucoseDays = 7, staffOnly = false }) {
   const patient = await get('SELECT * FROM patients WHERE id = ?', patientId);
   if (!patient) throw Object.assign(new Error('Bemor topilmadi.'), { status: 404 });
   const carePlan = await getActivePlan(patientId);
@@ -328,6 +329,16 @@ export async function assistantAnswer({ patientId, question, language = 'uz', us
         `${ASSISTANT_REFUSAL} Shoshilinch holatda 103 (tez yordam) yoki yaqin tibbiy yordamga murojaat qiling. ${QUEUED_NOTICE}`,
       alert_id: alertId,
     };
+  }
+
+  // A care-team message is always persisted for a human. Emergency handling
+  // above remains active; requesting a human must never suppress escalation.
+  if (staffOnly) {
+    const qid = await createQuestion({ patientId, question, language, user,
+      ai: { priority: 'normal', attempted: false, refused: false, answer: null } });
+    await audit({ user }, 'question.created', 'patient_question', qid, { reason: 'patient_requested_staff' });
+    return { question_id: qid, answer: language === 'ru' ? 'Сообщение передано медицинской команде.' : 'Xabar tibbiy jamoaga yuborildi.',
+      can_answer: false, refused: false, queued: true, priority: 'normal', status: 'unanswered', disclaimer: DISCLAIMER };
   }
 
   // ---- Diagnosis questions always go to a clinician. -----------------------

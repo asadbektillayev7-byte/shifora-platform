@@ -1,9 +1,11 @@
 import { useState } from 'react'
 import { useAuth } from '../../lib/auth'
 import { uz } from '../../lib/uz'
+import { useLanguage } from '../../lib/i18n'
 import { api } from '../../lib/api'
 import { useApi } from '../../lib/hooks'
-import { Badge, Button, Card, Empty, Loading, Modal, Notice, Textarea } from '../../components/ui'
+import { Badge, Button, Card, Empty, ErrorState, Loading, Modal, Notice, Textarea } from '../../components/ui'
+import { Icon } from '../../components/Icon'
 import type { QuestionDetail, QuestionPriority, QuestionRecord, QuestionStatus } from '../../lib/types'
 import { formatDateTime, timeAgo } from '../../lib/format'
 
@@ -23,19 +25,25 @@ const PRIORITY_TONE: Record<QuestionPriority, 'urgent' | 'attention' | 'neutral'
 }
 
 function QuestionDetail({ id, onClose, onChanged }: { id: number; onClose: () => void; onChanged: () => void }) {
+  const { t, locale } = useLanguage()
   const { session } = useAuth()
-  const { data, loading, reload } = useApi<QuestionDetail>(`/questions/${id}`)
+  const { data, loading, error, reload } = useApi<QuestionDetail>(`/questions/${id}`, [locale])
   const [answer, setAnswer] = useState('')
   const [note, setNote] = useState('')
   const [busy, setBusy] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [actionError, setActionError] = useState<string | null>(null)
 
   async function update(changes: Record<string, unknown>) {
     setBusy(true)
+    setActionError(null)
     try {
       await api.patch(`/questions/${id}`, changes)
       await reload()
       onChanged()
+      if (changes.status === 'answered') setSaved(true)
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : uz.app.errorGeneric)
     } finally {
       setBusy(false)
     }
@@ -44,10 +52,13 @@ function QuestionDetail({ id, onClose, onChanged }: { id: number; onClose: () =>
   async function addNote() {
     if (!note.trim()) return
     setBusy(true)
+    setActionError(null)
     try {
       await api.post(`/questions/${id}/notes`, { note })
       setNote('')
       await reload()
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : uz.app.errorGeneric)
     } finally {
       setBusy(false)
     }
@@ -71,7 +82,6 @@ function QuestionDetail({ id, onClose, onChanged }: { id: number; onClose: () =>
                 variant="primary"
                 disabled={busy || !answer.trim()}
                 onClick={() => {
-                  setSaved(true)
                   void update({ status: 'answered', answer })
                 }}
               >
@@ -87,10 +97,13 @@ function QuestionDetail({ id, onClose, onChanged }: { id: number; onClose: () =>
         ) : null
       }
     >
-      {loading || !data ? (
+      {error ? (
+        <ErrorState message={error} retry={() => void reload()} />
+      ) : loading || !data ? (
         <Loading />
       ) : (
         <div className="stack">
+          {actionError ? <ErrorState message={actionError} /> : null}
           {data.priority === 'urgent' ? <Notice tone="warning">{uz.questions.urgentHint}</Notice> : null}
 
           <div className="row--between">
@@ -105,7 +118,7 @@ function QuestionDetail({ id, onClose, onChanged }: { id: number; onClose: () =>
             <div className="strong">{data.question}</div>
             <div className="small muted">{uz.questions.created}: {formatDateTime(data.created_at)}</div>
             {data.assigned_name ? (
-              <div className="small muted">👤 {data.assigned_name}</div>
+              <div className="small muted">{data.assigned_name}</div>
             ) : null}
           </div>
 
@@ -120,7 +133,7 @@ function QuestionDetail({ id, onClose, onChanged }: { id: number; onClose: () =>
               <div className="strong">{uz.assistant.answerTitle}</div>
               <div>{data.answer}</div>
               <div className="small muted">
-                {data.answered_by_name ? `👤 ${data.answered_by_name} · ` : ''}{formatDateTime(data.answered_at)}
+                {data.answered_by_name ? `${data.answered_by_name} · ` : ''}{formatDateTime(data.answered_at)}
               </div>
             </Notice>
           ) : null}
@@ -128,6 +141,7 @@ function QuestionDetail({ id, onClose, onChanged }: { id: number; onClose: () =>
           {data.status !== 'answered' && data.status !== 'closed' ? (
             <div className="stack--sm">
               <Textarea
+                aria-label={uz.questions.answerPlaceholder}
                 rows={4}
                 placeholder={uz.questions.answerPlaceholder}
                 value={answer}
@@ -142,7 +156,7 @@ function QuestionDetail({ id, onClose, onChanged }: { id: number; onClose: () =>
               <div className="strong">{uz.questions.refsTitle}</div>
               {data.references.map((ref) => (
                 <div key={ref.source_key} className="small">
-                  📚 {ref.source_title}
+                  {ref.source_title}
                   {ref.note ? <span className="muted"> — {ref.note}</span> : null}
                 </div>
               ))}
@@ -153,13 +167,13 @@ function QuestionDetail({ id, onClose, onChanged }: { id: number; onClose: () =>
             <div className="stack--sm">
               <div className="strong">{uz.questions.patientContextTitle}</div>
               <dl className="kv">
-                <dt>{uz.questions.trendAll} (14 kun)</dt>
+                <dt>{uz.questions.trendAll} ({t('14 kun', '14 дней')})</dt>
                 <dd>
                   {data.patient_context.glucose_trend.all.count > 0
-                    ? `${data.patient_context.glucose_trend.all.count} ta · o‘rt. ${data.patient_context.glucose_trend.all.avg} ${data.patient_context.glucose_trend.all.unit}`
+                    ? `${uz.assistant.count(data.patient_context.glucose_trend.all.count)} · ${uz.reports.average}: ${data.patient_context.glucose_trend.all.avg} ${data.patient_context.glucose_trend.all.unit}`
                     : uz.patients.noData}
                 </dd>
-                <dt>Dorilar</dt>
+                <dt>{uz.carePlan.medications}</dt>
                 <dd>
                   {data.patient_context.medications.length > 0
                     ? data.patient_context.medications
@@ -167,7 +181,7 @@ function QuestionDetail({ id, onClose, onChanged }: { id: number; onClose: () =>
                         .join(', ')
                     : uz.patients.noData}
                 </dd>
-                <dt>So‘nggi ogohlantirishlar</dt>
+                <dt>{t('So‘nggi ogohlantirishlar', 'Последние оповещения')}</dt>
                 <dd>
                   {data.patient_context.recent_alerts.length > 0
                     ? data.patient_context.recent_alerts
@@ -186,7 +200,7 @@ function QuestionDetail({ id, onClose, onChanged }: { id: number; onClose: () =>
             {data.notes && data.notes.length > 0 ? (
               data.notes.map((item) => (
                 <div key={item.id} className="notice" style={{ background: 'var(--bg)', borderColor: 'var(--line)', color: 'var(--ink)' }}>
-                  <span className="notice__icon" aria-hidden>📝</span>
+                  <span className="notice__icon" aria-hidden><Icon name="file" size={18} /></span>
                   <div>
                     <div className="small">{item.note}</div>
                     <div className="small muted">{item.author ?? ''} · {timeAgo(item.created_at)}</div>
@@ -197,6 +211,7 @@ function QuestionDetail({ id, onClose, onChanged }: { id: number; onClose: () =>
               <p className="muted small">{uz.alerts.noNotes}</p>
             )}
             <Textarea
+              aria-label={uz.questions.internalNotes}
               placeholder={uz.questions.notePlaceholder}
               value={note}
               onChange={(e) => setNote(e.target.value)}
@@ -214,9 +229,10 @@ function QuestionDetail({ id, onClose, onChanged }: { id: number; onClose: () =>
 }
 
 export function QuestionsPage() {
+  const { t, locale } = useLanguage()
   const [tab, setTab] = useState<TabKey>('unanswered')
   const [selected, setSelected] = useState<number | null>(null)
-  const { data, loading, reload } = useApi<QueueResponse>('/questions?limit=200')
+  const { data, loading, error, reload } = useApi<QueueResponse>('/questions?limit=200', [locale])
 
   const visible = (data?.questions ?? []).filter((q) => q.status === tab)
 
@@ -227,6 +243,7 @@ export function QuestionsPage() {
           <button
             key={key}
             className={`chip ${tab === key ? 'chip--on' : ''}`}
+            aria-pressed={tab === key}
             onClick={() => setTab(key)}
           >
             {uz.questions.tabs[key]} {data ? `(${data.counts[key]})` : ''}
@@ -234,11 +251,13 @@ export function QuestionsPage() {
         ))}
       </div>
 
-      <Card title={uz.questions.title} subtitle={data ? `${visible.length} ta` : undefined} flush>
+      <Card title={uz.questions.title} subtitle={data ? t(`${visible.length} ta`, `Вопросов: ${visible.length}`) : undefined} flush>
         {loading ? (
           <Loading />
+        ) : error ? (
+          <ErrorState message={error} retry={() => void reload()} />
         ) : visible.length === 0 ? (
-          <Empty icon="💬" title={uz.questions.empty} />
+          <Empty icon="message" title={uz.questions.empty} />
         ) : (
           visible.map((q) => (
             <div className="alert-row" key={q.id}>
@@ -252,9 +271,9 @@ export function QuestionsPage() {
                   <Badge tone={PRIORITY_TONE[q.priority]}>{uz.questions.priorityLabel[q.priority]}</Badge>
                 </div>
                 <div className="alert-row__meta">
-                  <span>🕒 {timeAgo(q.created_at)}</span>
-                  <span>📌 {uz.questions.statusLabel[q.status]}</span>
-                  <span>👤 {q.assigned_name ?? uz.app.notSpecified}</span>
+                  <span>{timeAgo(q.created_at)}</span>
+                  <span>{uz.questions.statusLabel[q.status]}</span>
+                  <span>{q.assigned_name ?? uz.app.notSpecified}</span>
                 </div>
               </div>
               <Button size="sm" variant="primary" onClick={() => setSelected(q.id)}>

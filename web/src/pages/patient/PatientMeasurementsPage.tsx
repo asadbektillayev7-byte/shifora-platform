@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { uz } from '../../lib/uz'
+import { useLanguage } from '../../lib/i18n'
 import { useApi } from '../../lib/hooks'
-import { Badge, Button, Card, Empty, Loading, Notice } from '../../components/ui'
+import { Badge, Button, Card, Empty, ErrorState, Loading, Notice } from '../../components/ui'
 import { BloodPressureForm, GlucoseForm, SymptomForm } from '../../components/MeasurementForms'
 import { GlucoseLineChart } from '../../components/charts'
 import type { BloodPressureReading, GlucoseReading, SymptomCheck } from '../../lib/types'
@@ -14,11 +15,13 @@ interface Response {
 }
 
 export function PatientMeasurementsPage() {
-  const { data, loading, reload } = useApi<Response>('/measurements?limit=30')
+  const { locale } = useLanguage()
+  const { data, loading, error, reload } = useApi<Response>('/measurements?limit=30', [locale])
   const [openForm, setOpenForm] = useState<null | 'glucose' | 'blood_pressure' | 'symptom'>(null)
   const [toast, setToast] = useState<{ tone: 'success' | 'warning'; text: string } | null>(null)
 
-  if (loading || !data) return <div className="content"><Loading /></div>
+  if (loading) return <div className="content"><Loading /></div>
+  if (error || !data) return <div className="content"><ErrorState message={error ?? uz.app.errorGeneric} retry={() => void reload()} /></div>
 
   const chartData = [...data.glucose]
     .sort((a, b) => a.measured_at.localeCompare(b.measured_at))
@@ -32,27 +35,27 @@ export function PatientMeasurementsPage() {
 
       <div className="stack--sm">
         <Button variant="primary" size="lg" block onClick={() => setOpenForm('glucose')}>
-          🩸 {uz.measurements.addGlucose}
+          {uz.measurements.addGlucose}
         </Button>
         <Button size="lg" block onClick={() => setOpenForm('blood_pressure')}>
-          🫀 {uz.measurements.addBp}
+          {uz.measurements.addBp}
         </Button>
         <Button size="lg" block onClick={() => setOpenForm('symptom')}>
-          💬 {uz.measurements.addSymptom}
+          {uz.measurements.addSymptom}
         </Button>
       </div>
 
       <Notice tone="info">{uz.measurements.manualNote}</Notice>
 
       {chartData.length >= 2 ? (
-        <Card title={`🩸 ${uz.measurements.glucose}`}>
+        <Card title={uz.measurements.glucose}>
           <GlucoseLineChart readings={chartData} />
         </Card>
       ) : null}
 
-      <Card title={`🩸 ${uz.measurements.glucose}`} flush>
+      <Card title={uz.measurements.glucose} flush>
         {data.glucose.length === 0 ? (
-          <Empty icon="🩸" title={uz.measurements.noReadings} />
+          <Empty icon="droplet" title={uz.measurements.noReadings} />
         ) : (
           <div className="table-wrap">
             <table className="table">
@@ -61,7 +64,7 @@ export function PatientMeasurementsPage() {
                   <tr key={reading.id} style={{ cursor: 'default' }}>
                     <td>
                       <div className="strong" style={{ fontSize: '1.05rem' }}>
-                        {reading.value} <span className="muted small">mg/dL</span>
+                        {reading.value} <span className="muted small">{reading.unit}</span>
                       </div>
                       <div className="small muted">{uz.measurements.context[reading.context]}</div>
                     </td>
@@ -76,9 +79,9 @@ export function PatientMeasurementsPage() {
         )}
       </Card>
 
-      <Card title={`🫀 ${uz.measurements.bloodPressure}`} flush>
+      <Card title={uz.measurements.bloodPressure} flush>
         {data.blood_pressure.length === 0 ? (
-          <Empty icon="🫀" title={uz.measurements.noReadings} />
+          <Empty icon="heart" title={uz.measurements.noReadings} />
         ) : (
           <div className="table-wrap">
             <table className="table">
@@ -104,9 +107,9 @@ export function PatientMeasurementsPage() {
         )}
       </Card>
 
-      <Card title={`💬 ${uz.measurements.symptoms}`} flush>
+      <Card title={uz.measurements.symptoms} flush>
         {data.symptoms.length === 0 ? (
-          <Empty icon="💬" title={uz.measurements.noReadings} />
+          <Empty icon="message" title={uz.measurements.noReadings} />
         ) : (
           <div className="table-wrap">
             <table className="table">

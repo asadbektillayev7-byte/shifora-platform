@@ -1,4 +1,5 @@
 import { uz } from './uz'
+import { demoRequest, isDemoToken } from './demo'
 
 const TOKEN_KEY = 'shifora.token'
 
@@ -21,6 +22,13 @@ export const tokenStore = {
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const token = tokenStore.get()
+  if (isDemoToken(token)) {
+    try { return await demoRequest<T>(path, options, token) }
+    catch (error) {
+      const failure = error as Error & { status?: number; details?: Record<string, string> }
+      throw new ApiError(failure.status ?? 500, failure.message, failure.details ?? null)
+    }
+  }
   let response: Response
   try {
     response = await fetch(`/api${path}`, {

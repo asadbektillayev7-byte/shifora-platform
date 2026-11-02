@@ -1,9 +1,8 @@
-/**
- * Every user-facing string in the product. Nothing is hard-coded in components,
- * so the wording can be reviewed by a clinician in one place — and a second
- * language could be added later without touching the screens.
- */
-export const uz = {
+import { getLocale } from './language'
+import { ruDictionary } from './ru'
+
+/** Shared interface copy. The exported proxy reads the current language on access. */
+export const uzDictionary = {
   app: {
     name: 'Shifora',
     tagline: 'Diabet bemorlarini shifoxonadan keyin kuzatish tizimi',
@@ -636,6 +635,33 @@ export const uz = {
     checkFields: 'Iltimos, quyidagi maydonlarni tekshiring.',
   },
 } as const
+
+type LocalizedShape<T> = T extends (...args: infer A) => unknown
+  ? (...args: A) => string
+  : T extends string
+    ? string
+    : T extends readonly (infer V)[]
+      ? readonly LocalizedShape<V>[]
+      : { readonly [K in keyof T]: LocalizedShape<T[K]> }
+
+export type TranslationDictionary = LocalizedShape<typeof uzDictionary>
+
+function localizedObject(base: object, russian: object): object {
+  const nested = new Map<PropertyKey, object>()
+  return new Proxy(base, {
+    get(target, key, receiver) {
+      const original = Reflect.get(target, key, receiver)
+      const translated = Reflect.get(russian, key)
+      if (original && typeof original === 'object' && !Array.isArray(original)) {
+        if (!nested.has(key)) nested.set(key, localizedObject(original, translated ?? original))
+        return nested.get(key)
+      }
+      return getLocale() === 'ru' ? translated ?? original : original
+    },
+  })
+}
+
+export const uz = localizedObject(uzDictionary, ruDictionary) as TranslationDictionary
 
 export type ScheduleKey = keyof typeof uz.schedule
 export type PriorityKey = keyof typeof uz.priority

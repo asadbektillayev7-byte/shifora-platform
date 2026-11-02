@@ -1,8 +1,10 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { uz } from '../../lib/uz'
+import { useLanguage } from '../../lib/i18n'
 import { useApi } from '../../lib/hooks'
-import { Badge, Button, Card, Empty, Input, Loading, Notice, StatusBadge } from '../../components/ui'
+import { Badge, Button, Card, Empty, ErrorState, Input, Loading, Notice, StatusBadge } from '../../components/ui'
+import { Icon } from '../../components/Icon'
 import type { PatientStatus } from '../../lib/types'
 import { formatDate, initials } from '../../lib/format'
 
@@ -22,18 +24,18 @@ interface PlanRow {
   monitoring_count: number
 }
 
-const FILTERS = [
-  { key: 'active', label: uz.carePlan.active },
-  { key: 'draft', label: uz.carePlan.draft },
-  { key: 'archived', label: uz.carePlan.archived },
-  { key: 'all', label: uz.app.all },
-]
-
 export function CarePlansPage() {
+  const { t } = useLanguage()
+  const FILTERS = [
+    { key: 'active', label: uz.carePlan.active },
+    { key: 'draft', label: uz.carePlan.draft },
+    { key: 'archived', label: uz.carePlan.archived },
+    { key: 'all', label: uz.app.all },
+  ]
   const navigate = useNavigate()
   const [status, setStatus] = useState('active')
   const [query, setQuery] = useState('')
-  const { data, loading } = useApi<{ plans: PlanRow[] }>(
+  const { data, loading, error, reload } = useApi<{ plans: PlanRow[] }>(
     `/care-plans?status=${status}&query=${encodeURIComponent(query)}`,
     [status, query],
   )
@@ -44,6 +46,7 @@ export function CarePlansPage() {
 
       <div className="row--between">
         <Input
+          aria-label={uz.patients.searchPlaceholder}
           placeholder={uz.patients.searchPlaceholder}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
@@ -54,6 +57,7 @@ export function CarePlansPage() {
             <button
               key={filter.key}
               className={`chip ${status === filter.key ? 'chip--on' : ''}`}
+              aria-pressed={status === filter.key}
               onClick={() => setStatus(filter.key)}
             >
               {filter.label}
@@ -64,13 +68,15 @@ export function CarePlansPage() {
 
       <Card
         title={uz.carePlan.listTitle}
-        subtitle={data ? `${data.plans.length} ta reja` : undefined}
+        subtitle={data ? t(`${data.plans.length} ta reja`, `Планов: ${data.plans.length}`) : undefined}
         flush
       >
         {loading ? (
           <Loading />
+        ) : error ? (
+          <ErrorState message={error} retry={() => void reload()} />
         ) : !data || data.plans.length === 0 ? (
-          <Empty icon="📋" title={uz.carePlan.noPlan} />
+          <Empty icon="clipboard" title={uz.carePlan.noPlan} />
         ) : (
           <div className="table-wrap">
             <table className="table">
@@ -87,7 +93,7 @@ export function CarePlansPage() {
               </thead>
               <tbody>
                 {data.plans.map((plan) => (
-                  <tr key={plan.id} onClick={() => navigate(`/shifoxona/bemorlar/${plan.patient_id}`)}>
+                  <tr key={plan.id} tabIndex={0} onKeyDown={event => { if (event.key === 'Enter') navigate(`/shifoxona/bemorlar/${plan.patient_id}`) }} onClick={() => navigate(`/shifoxona/bemorlar/${plan.patient_id}`)}>
                     <td>
                       <div className="person">
                         <span className="avatar" aria-hidden>{initials(plan.first_name, plan.last_name)}</span>
@@ -107,8 +113,8 @@ export function CarePlansPage() {
                         v{plan.version} · {uz.carePlan[plan.status]}
                       </Badge>
                     </td>
-                    <td>{plan.medication_count} ta</td>
-                    <td>{plan.monitoring_count} ta</td>
+                    <td>{plan.medication_count}</td>
+                    <td>{plan.monitoring_count}</td>
                     <td className="small">{plan.approver_name ?? uz.carePlan.notApproved}</td>
                     <td><StatusBadge status={plan.patient_status} /></td>
                   </tr>
@@ -121,7 +127,7 @@ export function CarePlansPage() {
 
       <div>
         <Button variant="primary" onClick={() => navigate('/shifoxona/royxat')}>
-          ➕ {uz.nav.hospital.register}
+          <Icon name="plus" size={18} />{uz.nav.hospital.register}
         </Button>
       </div>
     </div>

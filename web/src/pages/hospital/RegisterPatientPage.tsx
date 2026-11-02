@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { uz } from '../../lib/uz'
+import { useLanguage } from '../../lib/i18n'
+import { Icon } from '../../components/Icon'
 import { api, ApiError } from '../../lib/api'
 import { todayKey } from '../../lib/format'
 import type { AiCarePlanSuggestion, DiabetesType, MeasurementContext } from '../../lib/types'
@@ -11,14 +13,6 @@ import {
 import {
   MonitoringEditor, defaultMonitoring, type MonitoringDraft,
 } from './MonitoringEditor'
-
-const STEPS = [
-  uz.register.steps.patient,
-  uz.register.steps.diabetes,
-  uz.register.steps.medications,
-  uz.register.steps.monitoring,
-  uz.register.steps.review,
-]
 
 const CAREGIVER_PERMISSION_KEYS = [
   'view_today_plan', 'view_adherence', 'view_alerts',
@@ -86,9 +80,14 @@ const DEFAULT_THRESHOLDS = {
 }
 
 export function RegisterPatientPage() {
+  const { t, locale } = useLanguage()
+  const STEPS = [
+    uz.register.steps.patient, uz.register.steps.diabetes, uz.register.steps.medications,
+    uz.register.steps.monitoring, uz.register.steps.review,
+  ]
   const navigate = useNavigate()
   const [step, setStep] = useState(0)
-  const [form, setForm] = useState<FormState>(INITIAL)
+  const [form, setForm] = useState<FormState>(() => ({ ...INITIAL, language: locale }))
   const [medications, setMedications] = useState<MedicationDraft[]>([emptyMedication(todayKey())])
   const [monitoring, setMonitoring] = useState<MonitoringDraft>(defaultMonitoring())
   const [reminders, setReminders] = useState(DEFAULT_REMINDERS)
@@ -113,35 +112,35 @@ export function RegisterPatientPage() {
       if (!form.gender) next.gender = uz.validation.required
       if (!form.phone.trim()) next.phone = uz.validation.required
       if (form.create_account && form.account_password.trim().length < 4) {
-        next.account_password = 'Parol kamida 4 ta belgidan iborat bo‘lishi kerak.'
+        next.account_password = t('Parol kamida 4 ta belgidan iborat bo‘lishi kerak.', 'Пароль должен содержать не менее 4 символов.')
       }
       if (form.add_caregiver) {
         if (!form.caregiver_name.trim()) next.caregiver_name = uz.validation.required
         if (!form.caregiver_phone.trim()) next.caregiver_phone = uz.validation.required
         if (form.caregiver_password.trim().length < 4) {
-          next.caregiver_password = 'Parol kamida 4 ta belgidan iborat bo‘lishi kerak.'
+          next.caregiver_password = t('Parol kamida 4 ta belgidan iborat bo‘lishi kerak.', 'Пароль должен содержать не менее 4 символов.')
         }
         if (form.caregiver_phone.trim() && form.caregiver_phone.trim() === form.phone.trim()) {
-          next.caregiver_phone = 'Yaqin kishining raqami bemor raqamidan farq qilishi kerak.'
+          next.caregiver_phone = t('Yaqin kishining raqami bemor raqamidan farq qilishi kerak.', 'Телефон близкого должен отличаться от телефона пациента.')
         }
       }
     }
     if (index === 1 && !form.diabetes_type) next.diabetes_type = uz.validation.required
     if (index === 2) {
-      if (medications.length === 0) next.medications = 'Kamida bitta dori qo‘shing.'
+      if (medications.length === 0) next.medications = t('Kamida bitta dori qo‘shing.', 'Добавьте хотя бы одно лекарство.')
       medications.forEach((med, i) => {
         if (!med.name.trim()) next[`med_${i}_name`] = uz.validation.required
         if (!String(med.dose).trim()) next[`med_${i}_dose`] = uz.validation.required
         if (med.schedule_type !== 'as_needed' && med.times.filter(Boolean).length === 0) {
-          next[`med_${i}_times`] = 'Kamida bitta eslatma vaqtini belgilang.'
+          next[`med_${i}_times`] = t('Kamida bitta eslatma vaqtini belgilang.', 'Укажите хотя бы одно время напоминания.')
         }
       })
     }
     if (index === 3) {
       const anyEnabled = monitoring.glucose.enabled || monitoring.blood_pressure.enabled || monitoring.symptom.enabled
-      if (!anyEnabled) next.monitoring = 'Kamida bitta kuzatuv turini yoqing.'
+      if (!anyEnabled) next.monitoring = t('Kamida bitta kuzatuv turini yoqing.', 'Включите хотя бы один вид наблюдения.')
       if (monitoring.glucose.enabled && monitoring.glucose.times.length === 0) {
-        next.monitoring = 'Glyukoza uchun kamida bitta o‘lchov vaqtini belgilang.'
+        next.monitoring = t('Glyukoza uchun kamida bitta o‘lchov vaqtini belgilang.', 'Укажите хотя бы одно время измерения глюкозы.')
       }
     }
     setErrors(next)
@@ -245,13 +244,15 @@ export function RegisterPatientPage() {
         care_plan: {
           source: suggestionState === 'accepted' ? 'ai_assisted' : 'manual',
           start_date: todayKey(),
-          notes: 'Shifoxonadan chiqishdan oldin tuzilgan kuzatuv rejasi.',
+          notes: t('Shifoxonadan chiqishdan oldin tuzilgan kuzatuv rejasi.', 'План наблюдения, составленный перед выпиской.'),
           ...reminders,
           medications: medications.map((med) => ({
             name: med.name,
             dose: med.dose,
             unit: med.unit,
             schedule_type: med.schedule_type,
+            schedule_label: med.schedule_label ?? null,
+            reminders_enabled: med.reminders_enabled !== false,
             times: med.times.filter(Boolean),
             priority: med.priority,
             start_date: med.start_date || todayKey(),
@@ -294,7 +295,7 @@ export function RegisterPatientPage() {
       <div className="stack">
         <Card>
           <div className="center stack">
-            <div style={{ fontSize: '3rem' }} aria-hidden>✅</div>
+            <div aria-hidden><Icon name="check" size={44} /></div>
             <h1>{uz.register.successTitle}</h1>
             <p className="muted">{uz.register.successBody}</p>
             <div className="row" style={{ justifyContent: 'center' }}>
@@ -304,7 +305,7 @@ export function RegisterPatientPage() {
               <Button
                 onClick={() => {
                   setCreatedId(null)
-                  setForm(INITIAL)
+                  setForm({ ...INITIAL, language: locale })
                   setMedications([emptyMedication(todayKey())])
                   setMonitoring(defaultMonitoring())
                   setSuggestion(null)
@@ -329,7 +330,7 @@ export function RegisterPatientPage() {
             key={label}
             className={`step ${index === step ? 'step--on' : ''} ${index < step ? 'step--done' : ''}`}
           >
-            <span className="step__num">{index < step ? '✓' : index + 1}</span>
+            <span className="step__num">{index < step ? <Icon name="check" size={18} /> : index + 1}</span>
             {label}
           </div>
         ))}
@@ -381,6 +382,7 @@ export function RegisterPatientPage() {
               <Field label={uz.register.language}>
                 <Select value={form.language} onChange={(e) => set({ language: e.target.value })}>
                   <option value="uz">O‘zbek tili</option>
+                  <option value="ru">Русский язык</option>
                 </Select>
               </Field>
             </div>
@@ -396,9 +398,10 @@ export function RegisterPatientPage() {
             {form.create_account ? (
               <Field label={uz.register.accountPassword} required error={errors.account_password}>
                 <Input
+                  type="password"
                   value={form.account_password}
                   error={Boolean(errors.account_password)}
-                  placeholder="Kamida 4 ta belgi"
+                  placeholder={t('Kamida 4 ta belgi', 'Не менее 4 символов')}
                   onChange={(e) => set({ account_password: e.target.value })}
                   style={{ maxWidth: 320 }}
                 />
@@ -425,12 +428,12 @@ export function RegisterPatientPage() {
                       onChange={(e) => set({ caregiver_phone: e.target.value })} />
                   </Field>
                   <Field label={uz.register.caregiverRelation}>
-                    <Input placeholder="O‘g‘li, qizi, turmush o‘rtog‘i..."
+                    <Input placeholder={t('O‘g‘li, qizi, turmush o‘rtog‘i...', 'Сын, дочь, супруг(а)...')}
                       value={form.caregiver_relation}
                       onChange={(e) => set({ caregiver_relation: e.target.value })} />
                   </Field>
                   <Field label={uz.register.caregiverPassword} required error={errors.caregiver_password}>
-                    <Input value={form.caregiver_password} error={Boolean(errors.caregiver_password)}
+                    <Input type="password" value={form.caregiver_password} error={Boolean(errors.caregiver_password)}
                       onChange={(e) => set({ caregiver_password: e.target.value })} />
                   </Field>
                 </div>
@@ -518,7 +521,7 @@ export function RegisterPatientPage() {
           ))}
           <div>
             <Button onClick={() => setMedications((prev) => [...prev, emptyMedication(todayKey())])}>
-              ➕ {uz.register.addMedication}
+              <Icon name="plus" size={18} />{uz.register.addMedication}
             </Button>
           </div>
         </div>
@@ -566,27 +569,27 @@ export function RegisterPatientPage() {
 
           <Card title={uz.register.thresholdsTitle} subtitle={uz.register.thresholdsHint}>
             <div className="grid3">
-              <Field label="Gipoglikemiya — shoshilinch (mg/dL)">
+              <Field label={t('Gipoglikemiya — shoshilinch (mg/dL)', 'Гипогликемия — срочно (mg/dL)')}>
                 <Input type="number" value={thresholds.glucose_critical_low}
                   onChange={(e) => setThresholds({ ...thresholds, glucose_critical_low: Number(e.target.value) })} />
               </Field>
-              <Field label="Past glyukoza (mg/dL)">
+              <Field label={t('Past glyukoza (mg/dL)', 'Низкая глюкоза (mg/dL)')}>
                 <Input type="number" value={thresholds.glucose_low}
                   onChange={(e) => setThresholds({ ...thresholds, glucose_low: Number(e.target.value) })} />
               </Field>
-              <Field label="Yuqori glyukoza (mg/dL)">
+              <Field label={t('Yuqori glyukoza (mg/dL)', 'Высокая глюкоза (mg/dL)')}>
                 <Input type="number" value={thresholds.glucose_high}
                   onChange={(e) => setThresholds({ ...thresholds, glucose_high: Number(e.target.value) })} />
               </Field>
-              <Field label="Giperglikemiya — shoshilinch (mg/dL)">
+              <Field label={t('Giperglikemiya — shoshilinch (mg/dL)', 'Гипергликемия — срочно (mg/dL)')}>
                 <Input type="number" value={thresholds.glucose_critical_high}
                   onChange={(e) => setThresholds({ ...thresholds, glucose_critical_high: Number(e.target.value) })} />
               </Field>
-              <Field label="Sistolik chegara (mmHg)">
+              <Field label={t('Sistolik chegara (mmHg)', 'Граница систолического давления (mmHg)')}>
                 <Input type="number" value={thresholds.bp_high_systolic}
                   onChange={(e) => setThresholds({ ...thresholds, bp_high_systolic: Number(e.target.value) })} />
               </Field>
-              <Field label="Diastolik chegara (mmHg)">
+              <Field label={t('Diastolik chegara (mmHg)', 'Граница диастолического давления (mmHg)')}>
                 <Input type="number" value={thresholds.bp_high_diastolic}
                   onChange={(e) => setThresholds({ ...thresholds, bp_high_diastolic: Number(e.target.value) })} />
               </Field>
@@ -599,7 +602,7 @@ export function RegisterPatientPage() {
       {step === 4 ? (
         <div className="stack">
           <Card
-            title={<span>🤖 {uz.ai.title}</span>}
+            title={uz.ai.title}
             subtitle={uz.ai.subtitle}
             action={
               suggestionState === 'none' ? (
@@ -611,8 +614,7 @@ export function RegisterPatientPage() {
           >
             {suggestionState === 'none' ? (
               <p className="muted">
-                AI kuzatuv chastotasi bo‘yicha taklif tayyorlaydi. Taklif o‘zi faollashmaydi —
-                uni tibbiyot xodimi tasdiqlashi kerak.
+                {t('AI kuzatuv chastotasi bo‘yicha taklif tayyorlaydi. Taklif o‘zi faollashmaydi — uni tibbiyot xodimi tasdiqlashi kerak.', 'ИИ готовит предложение по частоте наблюдения. Предложение не активируется автоматически: его должен подтвердить медицинский сотрудник.')}
               </p>
             ) : suggestionState === 'loading' ? (
               <p className="muted">{uz.ai.generating}</p>
@@ -638,8 +640,8 @@ export function RegisterPatientPage() {
                   </Notice>
                 ) : (
                   <div className="row">
-                    <Button variant="primary" onClick={acceptSuggestion}>✓ {uz.ai.accept}</Button>
-                    <Button onClick={() => setStep(3)}>✎ {uz.ai.modify}</Button>
+                    <Button variant="primary" onClick={acceptSuggestion}>{uz.ai.accept}</Button>
+                    <Button onClick={() => setStep(3)}>{uz.ai.modify}</Button>
                   </div>
                 )}
               </div>
@@ -668,26 +670,26 @@ export function RegisterPatientPage() {
                       ? monitoring.glucose.times
                           .map((t) => `${t.time_of_day} — ${uz.measurements.context[t.context]}`)
                           .join(', ')
-                      : 'kuzatilmaydi'}
+                      : t('kuzatilmaydi', 'не отслеживается')}
                   </li>
                   <li>
                     {uz.register.monitoringBp}:{' '}
                     {monitoring.blood_pressure.enabled
                       ? monitoring.blood_pressure.times.map((t) => t.time_of_day).join(', ')
-                      : 'kuzatilmaydi'}
+                      : t('kuzatilmaydi', 'не отслеживается')}
                   </li>
                   <li>
                     {uz.register.monitoringSymptom}:{' '}
                     {monitoring.symptom.enabled
                       ? monitoring.symptom.times.map((t) => t.time_of_day).join(', ')
-                      : 'kuzatilmaydi'}
+                      : t('kuzatilmaydi', 'не отслеживается')}
                   </li>
                   <li>{uz.register.cgm}: {form.cgm_enabled ? uz.register.cgmOn : uz.register.cgmOff}</li>
                 </ul>
               </div>
               <Notice tone="info">{uz.carePlan.versionNote}</Notice>
               <Button variant="primary" size="lg" onClick={() => void submit()} disabled={submitting}>
-                {submitting ? uz.register.submitting : `✓ ${uz.register.submit}`}
+                {submitting ? uz.register.submitting : uz.register.submit}
               </Button>
             </div>
           </Card>
@@ -696,11 +698,11 @@ export function RegisterPatientPage() {
 
       <div className="row--between">
         <Button onClick={() => setStep((prev) => Math.max(prev - 1, 0))} disabled={step === 0}>
-          ← {uz.app.back}
+          <Icon name="back" size={18} />{uz.app.back}
         </Button>
         <span className="small muted">{uz.register.stepOf(step + 1, STEPS.length)}</span>
         {step < STEPS.length - 1 ? (
-          <Button variant="primary" onClick={goNext}>{uz.app.next} →</Button>
+          <Button variant="primary" onClick={goNext}>{uz.app.next}<Icon name="arrow" size={18} /></Button>
         ) : <span />}
       </div>
     </div>

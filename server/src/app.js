@@ -17,6 +17,8 @@ import caregiverRoutes from './routes/caregiver.routes.js';
 import cronRoutes from './routes/cron.routes.js';
 import assistantRoutes from './routes/assistant.routes.js';
 import questionRoutes from './routes/questions.routes.js';
+import chatRoutes from './routes/chat.routes.js';
+import medicationRoutes from './routes/medications.routes.js';
 
 /**
  * The Express application, with no listener attached.
@@ -46,6 +48,8 @@ export function createApp() {
   app.use('/api/cron', cronRoutes);
   app.use('/api/assistant', assistantRoutes);
   app.use('/api/questions', questionRoutes);
+  app.use('/api/chat', chatRoutes);
+  app.use('/api/medications', medicationRoutes);
 
   app.use('/api', notFoundHandler);
   app.use(errorHandler);

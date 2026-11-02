@@ -1,5 +1,6 @@
 import { Route, Routes } from 'react-router-dom'
 import { uz } from '../../lib/uz'
+import { useLanguage } from '../../lib/i18n'
 import { useNotifications } from '../../lib/hooks'
 import { PatientLayout } from '../../components/Layout'
 import { PatientHomePage } from './PatientHomePage'
@@ -12,15 +13,14 @@ import { PatientProfilePage } from './PatientProfilePage'
 const BASE = '/bemor'
 
 export function PatientApp() {
-  const { unread } = useNotifications(true)
+  const { t } = useLanguage()
+  useNotifications(true)
 
   const items = [
-    { to: BASE, label: uz.nav.patient.home, icon: '🏠' },
-    { to: `${BASE}/dorilarim`, label: uz.nav.patient.medications, icon: '💊' },
-    { to: `${BASE}/olchovlarim`, label: uz.nav.patient.measurements, icon: '🩸' },
-    { to: `${BASE}/yordamchi`, label: uz.nav.patient.assistant, icon: '🤖' },
-    { to: `${BASE}/ogohlantirishlar`, label: uz.nav.patient.alerts, icon: '🔔', badge: unread },
-    { to: `${BASE}/profil`, label: uz.nav.patient.profile, icon: '👤' },
+    { to: BASE, label: t('Bugun', 'Сегодня'), icon: 'home' },
+    { to: `${BASE}/dorilarim`, label: uz.nav.patient.medications, icon: 'pill' },
+    { to: `${BASE}/olchovlarim`, label: uz.nav.patient.measurements, icon: 'droplet' },
+    { to: `${BASE}/yordamchi`, label: t('Tibbiy jamoa', 'Команда'), icon: 'message' },
   ]
 
   return (

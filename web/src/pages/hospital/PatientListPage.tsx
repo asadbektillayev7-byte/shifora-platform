@@ -1,24 +1,26 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { uz } from '../../lib/uz'
+import { useLanguage } from '../../lib/i18n'
 import { useApi } from '../../lib/hooks'
-import { Button, Card, Empty, Input, Loading, Meter, StatusBadge } from '../../components/ui'
+import { Button, Card, Empty, ErrorState, Input, Loading, Meter, StatusBadge } from '../../components/ui'
+import { Icon } from '../../components/Icon'
 import type { PatientListItem, PatientStatus } from '../../lib/types'
 import { initials, timeAgo } from '../../lib/format'
 
-const FILTERS: { key: PatientStatus | 'all'; label: string }[] = [
-  { key: 'all', label: uz.app.all },
-  { key: 'urgent', label: uz.status.urgentShort },
-  { key: 'attention', label: uz.status.attention },
-  { key: 'stable', label: uz.status.stable },
-]
-
 export function PatientListPage() {
+  useLanguage()
+  const FILTERS: { key: PatientStatus | 'all'; label: string }[] = [
+    { key: 'all', label: uz.app.all },
+    { key: 'urgent', label: uz.status.urgentShort },
+    { key: 'attention', label: uz.status.attention },
+    { key: 'stable', label: uz.status.stable },
+  ]
   const navigate = useNavigate()
   const [query, setQuery] = useState('')
   const [status, setStatus] = useState<PatientStatus | 'all'>('all')
 
-  const { data, loading } = useApi<{ patients: PatientListItem[] }>(
+  const { data, loading, error, reload } = useApi<{ patients: PatientListItem[] }>(
     `/patients?status=${status}&query=${encodeURIComponent(query)}`,
     [status, query],
   )
@@ -28,6 +30,7 @@ export function PatientListPage() {
       <div className="row--between">
         <div className="row" style={{ flex: 1, minWidth: 240 }}>
           <Input
+            aria-label={uz.patients.searchPlaceholder}
             placeholder={uz.patients.searchPlaceholder}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
@@ -39,6 +42,7 @@ export function PatientListPage() {
             <button
               key={filter.key}
               className={`chip ${status === filter.key ? 'chip--on' : ''}`}
+              aria-pressed={status === filter.key}
               onClick={() => setStatus(filter.key)}
             >
               {filter.label}
@@ -52,15 +56,17 @@ export function PatientListPage() {
         subtitle={data ? uz.patients.count(data.patients.length) : undefined}
         action={
           <Button variant="primary" size="sm" onClick={() => navigate('/shifoxona/royxat')}>
-            ➕ {uz.nav.hospital.register}
+            <Icon name="plus" size={18} />{uz.nav.hospital.register}
           </Button>
         }
         flush
       >
         {loading ? (
           <Loading />
+        ) : error ? (
+          <ErrorState message={error} retry={() => void reload()} />
         ) : !data || data.patients.length === 0 ? (
-          <Empty icon="🔍" title={uz.patients.empty} />
+          <Empty icon="search" title={uz.patients.empty} />
         ) : (
           <div className="table-wrap">
             <table className="table">
@@ -126,7 +132,6 @@ export function PatientListPage() {
                     <td>
                       {patient.open_alerts > 0 ? (
                         <span className={`badge badge--${patient.has_urgent_alert ? 'urgent' : 'attention'}`}>
-                          <span aria-hidden>{patient.has_urgent_alert ? '🔴' : '🟡'}</span>
                           {patient.open_alerts}
                         </span>
                       ) : (

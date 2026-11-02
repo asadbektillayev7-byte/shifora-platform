@@ -1,6 +1,8 @@
 import { uz } from '../../lib/uz'
+import { useLanguage } from '../../lib/i18n'
 import { useApi } from '../../lib/hooks'
-import { Badge, Card, Empty, Loading, Notice } from '../../components/ui'
+import { Badge, Card, Empty, ErrorState, Loading, Notice } from '../../components/ui'
+import { Icon } from '../../components/Icon'
 import type { DailyPlan } from '../../lib/types'
 import { PatientSwitcher, useCaregiverPatient } from './CaregiverApp'
 
@@ -10,17 +12,19 @@ interface Detail {
 }
 
 const ICONS: Record<string, string> = {
-  medication: '💊',
-  glucose: '🩸',
-  blood_pressure: '🫀',
-  symptom: '💬',
+  medication: 'pill',
+  glucose: 'droplet',
+  blood_pressure: 'heart',
+  symptom: 'message',
 }
 
 export function CaregiverCarePage() {
+  const { t, locale } = useLanguage()
   const { patient } = useCaregiverPatient()
-  const { data, loading } = useApi<Detail>(`/caregiver/patients/${patient.id}`, [patient.id])
+  const { data, loading, error, reload } = useApi<Detail>(`/caregiver/patients/${patient.id}`, [patient.id, locale])
 
-  if (loading || !data) return <div className="content"><Loading /></div>
+  if (loading) return <div className="content"><Loading /></div>
+  if (error || !data) return <div className="content"><ErrorState message={error ?? uz.app.errorGeneric} retry={() => void reload()} /></div>
 
   return (
     <div className="content stack">
@@ -28,10 +32,12 @@ export function CaregiverCarePage() {
       <h1>{uz.caregiver.care}</h1>
       <p className="muted">{uz.caregiver.careHint}</p>
 
-      {!data.permissions.view_today_plan || !data.today ? (
-        <Card><Empty icon="🔒" title={uz.caregiver.noAccess} /></Card>
+      {!data.permissions.view_today_plan ? (
+        <Card><Empty icon="shield" title={uz.caregiver.noAccess} /></Card>
+      ) : !data.today ? (
+        <Card><Empty icon="clipboard" title={uz.patientHome.noPlanTitle}>{uz.patientHome.noPlanBody}</Empty></Card>
       ) : data.today.items.length === 0 ? (
-        <Card><Empty icon="📅" title={uz.patientHome.nothingToday} /></Card>
+        <Card><Empty icon="calendar" title={uz.patientHome.nothingToday} /></Card>
       ) : (
         <div className="stack--sm" style={{ gap: 12 }}>
           {data.today.items.map((item) => {
@@ -42,7 +48,7 @@ export function CaregiverCarePage() {
                 className={`task ${done ? 'task--done' : ''} ${item.status === 'missed' ? 'task--missed' : ''}`}
               >
                 <div className="task__time">{item.time}</div>
-                <div className="task__icon" aria-hidden>{ICONS[item.kind]}</div>
+                <div className="task__icon"><Icon name={ICONS[item.kind]} /></div>
                 <div className="task__body">
                   <div className="task__title">
                     {item.kind === 'medication'
@@ -55,11 +61,11 @@ export function CaregiverCarePage() {
                   </div>
                   <div style={{ marginTop: 8 }}>
                     {done ? (
-                      <Badge tone="stable">✅ {uz.patientHome.done}</Badge>
+                      <Badge tone="stable">{uz.patientHome.done}</Badge>
                     ) : item.status === 'missed' ? (
-                      <Badge tone="urgent">⚠️ {uz.patientHome.missed}</Badge>
+                      <Badge tone="urgent">{uz.patientHome.missed}</Badge>
                     ) : (
-                      <Badge tone="neutral">🕒 {uz.patientHome.waiting}</Badge>
+                      <Badge tone="neutral">{item.status === 'snoozed' ? uz.medications.doseSnoozed : uz.patientHome.waiting}</Badge>
                     )}
                   </div>
                 </div>
@@ -70,7 +76,7 @@ export function CaregiverCarePage() {
       )}
 
       <Notice tone="info">
-        Dori qabul qilinganini faqat bemorning o‘zi tasdiqlaydi. Siz rejani kuzatib borasiz.
+        {t('Dori qabul qilinganini faqat bemorning o‘zi tasdiqlaydi. Siz rejani kuzatib borasiz.', 'Приём лекарства подтверждает сам пациент. Вы можете следить за выполнением плана.')}
       </Notice>
     </div>
   )

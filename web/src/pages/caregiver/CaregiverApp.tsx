@@ -1,9 +1,10 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 import { Route, Routes } from 'react-router-dom'
 import { uz } from '../../lib/uz'
+import { useLanguage } from '../../lib/i18n'
 import { useApi, useNotifications } from '../../lib/hooks'
 import { PatientLayout } from '../../components/Layout'
-import { Card, Empty, Loading, Select } from '../../components/ui'
+import { Card, Empty, ErrorState, Loading, Select } from '../../components/ui'
 import { CaregiverHomePage } from './CaregiverHomePage'
 import { CaregiverCarePage } from './CaregiverCarePage'
 import { CaregiverStatusPage } from './CaregiverStatusPage'
@@ -46,10 +47,11 @@ export function useCaregiverPatient() {
 
 /** Shown above every screen when a caregiver looks after more than one person. */
 export function PatientSwitcher() {
+  const { t } = useLanguage()
   const { patients, patient, setPatientId } = useCaregiverPatient()
   if (patients.length < 2) return null
   return (
-    <Select value={patient.id} onChange={(e) => setPatientId(Number(e.target.value))}>
+    <Select aria-label={t('Bemorni tanlash', 'Выбрать пациента')} value={patient.id} onChange={(e) => setPatientId(Number(e.target.value))}>
       {patients.map((item) => (
         <option key={item.id} value={item.id}>{item.last_name} {item.first_name}</option>
       ))}
@@ -58,8 +60,9 @@ export function PatientSwitcher() {
 }
 
 export function CaregiverApp() {
+  const { locale } = useLanguage()
   const { unread } = useNotifications(true)
-  const { data, loading } = useApi<{ patients: CaregiverPatientSummary[] }>('/caregiver/patients')
+  const { data, loading, error, reload } = useApi<{ patients: CaregiverPatientSummary[] }>('/caregiver/patients', [locale])
   const [patientId, setPatientId] = useState<number | null>(null)
 
   useEffect(() => {
@@ -67,13 +70,14 @@ export function CaregiverApp() {
   }, [data, patientId])
 
   const items = [
-    { to: BASE, label: uz.nav.caregiver.home, icon: '🏠' },
-    { to: `${BASE}/parvarish`, label: uz.nav.caregiver.care, icon: '📋' },
-    { to: `${BASE}/holat`, label: uz.nav.caregiver.status, icon: '📈' },
-    { to: `${BASE}/ogohlantirishlar`, label: uz.nav.caregiver.alerts, icon: '🔔', badge: unread },
+    { to: BASE, label: uz.nav.caregiver.home, icon: 'home' },
+    { to: `${BASE}/parvarish`, label: uz.nav.caregiver.care, icon: 'clipboard' },
+    { to: `${BASE}/holat`, label: uz.nav.caregiver.status, icon: 'chart' },
+    { to: `${BASE}/ogohlantirishlar`, label: uz.nav.caregiver.alerts, icon: 'bell', badge: unread },
   ]
 
   if (loading) return <PatientLayout items={items}><div className="content"><Loading /></div></PatientLayout>
+  if (error) return <PatientLayout items={items}><div className="content"><ErrorState message={error} retry={() => void reload()} /></div></PatientLayout>
 
   const patient = data?.patients.find((p) => p.id === patientId) ?? data?.patients[0]
 
@@ -81,7 +85,7 @@ export function CaregiverApp() {
     return (
       <PatientLayout items={items}>
         <div className="content">
-          <Card><Empty icon="👨‍👩‍👦" title={uz.caregiver.noPatients} /></Card>
+          <Card><Empty icon="users" title={uz.caregiver.noPatients} /></Card>
         </div>
       </PatientLayout>
     )

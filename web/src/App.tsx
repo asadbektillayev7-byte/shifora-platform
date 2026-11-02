@@ -1,10 +1,13 @@
-import { Navigate, Route, Routes } from 'react-router-dom'
+import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
+import { lazy, Suspense, useEffect } from 'react'
 import { HOSPITAL_ROLES, useAuth } from './lib/auth'
 import { Loading } from './components/ui'
 import { LoginPage } from './pages/LoginPage'
-import { HospitalApp } from './pages/hospital/HospitalApp'
-import { PatientApp } from './pages/patient/PatientApp'
-import { CaregiverApp } from './pages/caregiver/CaregiverApp'
+import { useLanguage } from './lib/i18n'
+
+const HospitalApp = lazy(() => import('./pages/hospital/HospitalApp').then(module => ({ default: module.HospitalApp })))
+const PatientApp = lazy(() => import('./pages/patient/PatientApp').then(module => ({ default: module.PatientApp })))
+const CaregiverApp = lazy(() => import('./pages/caregiver/CaregiverApp').then(module => ({ default: module.CaregiverApp })))
 
 /** Where each role belongs after authentication. */
 export function homePathFor(role: string): string {
@@ -14,6 +17,9 @@ export function homePathFor(role: string): string {
 }
 
 export function App() {
+  useLanguage()
+  const { pathname } = useLocation()
+  useEffect(() => { window.scrollTo(0, 0) }, [pathname])
   const { session, loading } = useAuth()
 
   if (loading) return <Loading />
@@ -29,6 +35,7 @@ export function App() {
   const home = homePathFor(session.user.role)
 
   return (
+    <Suspense fallback={<Loading />}>
     <Routes>
       <Route path="/" element={<Navigate to={home} replace />} />
       {HOSPITAL_ROLES.includes(session.user.role) ? (
@@ -38,5 +45,6 @@ export function App() {
       {session.user.role === 'caregiver' ? <Route path="/yaqin/*" element={<CaregiverApp />} /> : null}
       <Route path="*" element={<Navigate to={home} replace />} />
     </Routes>
+    </Suspense>
   )
 }

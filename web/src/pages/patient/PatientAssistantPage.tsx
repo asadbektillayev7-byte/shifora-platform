@@ -1,181 +1,54 @@
 import { useState } from 'react'
 import { uz } from '../../lib/uz'
+import { useLanguage } from '../../lib/i18n'
 import { api } from '../../lib/api'
 import { useApi } from '../../lib/hooks'
-import { Badge, Button, Card, Empty, Loading, Notice, Textarea } from '../../components/ui'
+import { Badge, Button, Card, Empty, ErrorState, Loading, Notice, Textarea } from '../../components/ui'
+import { Icon } from '../../components/Icon'
 import type { AssistantAnswer, QuestionRecord } from '../../lib/types'
 import { formatDateTime } from '../../lib/format'
-
-const SUGGESTIONS = [uz.assistant.chips[0], uz.assistant.chips[1], uz.assistant.chips[2]]
-
-function StatsRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="row--between">
-      <span className="small muted">{label}</span>
-      <span className="strong">{value}</span>
-    </div>
-  )
-}
+import './patient-redesign.css'
 
 export function PatientAssistantPage() {
-  const { data, loading, reload } = useApi<{ questions: QuestionRecord[] }>('/assistant/questions')
+  const { t, locale } = useLanguage()
+  const { data, loading, error: historyError, reload } = useApi<{ questions: QuestionRecord[] }>('/assistant/questions')
   const [text, setText] = useState('')
   const [result, setResult] = useState<AssistantAnswer | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const examples = [t('Dori jadvali haqida savolim bor.', 'У меня вопрос о расписании лекарств.'), t('O‘lchov kiritishda yordam kerak.', 'Нужна помощь с записью измерения.')]
 
-  async function ask(questionOverride?: string) {
-    const question = (questionOverride ?? text).trim()
+  async function ask() {
+    const question = text.trim()
     if (!question || busy) return
-    setBusy(true)
-    setError(null)
+    setBusy(true); setError(null); setResult(null)
     try {
-      const response = await api.post<AssistantAnswer>('/assistant/ask', { question })
-      setResult(response)
-      setText('')
-      void reload()
-    } catch (err) {
-      setError(err instanceof Error ? err.message : uz.app.errorGeneric)
-    } finally {
-      setBusy(false)
-    }
+      const response = await api.post<AssistantAnswer>('/assistant/ask', { question, staff_only: true, language: locale })
+      setResult(response); setText(''); void reload()
+    } catch (err) { setError(err instanceof Error ? err.message : uz.app.errorGeneric) }
+    finally { setBusy(false) }
   }
 
-  return (
-    <div className="content stack">
-      <Card>
-        <div className="stack--sm">
-          <h1>{uz.assistant.title}</h1>
-          <p className="muted small">{uz.assistant.subtitle}</p>
-
-          <div className="stack--sm">
-            {result ? (
-              result.can_answer && result.answer ? (
-                <div className="assistant-bubble assistant-bubble--answer">
-                  <div className="small muted">{uz.assistant.answerTitle}</div>
-                  <div className="strong">{result.answer}</div>
-
-                  {result.stats ? (
-                    <div className="assistant-stats">
-                      <div className="small muted">{uz.assistant.statsTitle}:</div>
-                      <StatsRow label={uz.assistant.count(result.stats.count)} value={`${result.stats.avg} ${result.stats.unit}`} />
-                      <StatsRow label={uz.assistant.avg} value={`${result.stats.avg} ${result.stats.unit}`} />
-                      <StatsRow label={uz.assistant.min} value={`${result.stats.min} ${result.stats.unit}`} />
-                      <StatsRow label={uz.assistant.max} value={`${result.stats.max} ${result.stats.unit}`} />
-                      {result.stats.change !== null && (
-                        <StatsRow label={uz.assistant.change} value={`${result.stats.change} ${result.stats.unit}`} />
-                      )}
-                      {result.stats.in_range_pct !== null && (
-                        <StatsRow label={uz.assistant.inRange} value={`${result.stats.in_range_pct}%`} />
-                      )}
-                    </div>
-                  ) : null}
-
-                  {result.ranges ? (
-                    <div className="small muted">
-                      {uz.assistant.range}: {result.ranges.low ?? '—'} – {result.ranges.high ?? '—'} {result.ranges.unit}
-                    </div>
-                  ) : null}
-
-                  {result.sources && result.sources.length > 0 ? (
-                    <div className="stack--sm">
-                      <div className="small muted">{uz.assistant.sourcesTitle}:</div>
-                      <div className="assistant-sources">
-                        {result.sources.map((source) => (
-                          <span className="badge" key={source.source_key}>{source.source_title}</span>
-                        ))}
-                      </div>
-                    </div>
-                  ) : null}
-                </div>
-              ) : (
-                <div className="assistant-bubble assistant-bubble--refused">
-                  <div className="strong">{uz.assistant.refusalTitle}</div>
-                  <div>{result.answer}</div>
-                  {result.priority === 'urgent' ? (
-                    <Notice tone="warning">{uz.assistant.emergencyBody}</Notice>
-                  ) : null}
-                  <div className="small muted">{uz.assistant.answeredSoon}</div>
-                </div>
-              )
-            ) : null}
-          </div>
-
-          <Textarea
-            value={text}
-            rows={3}
-            placeholder={uz.assistant.placeholder}
-            onChange={(e) => setText(e.target.value)}
-          />
-
-          {error ? <Notice tone="danger">{error}</Notice> : null}
-
-          <div className="row--between">
-            <div className="assistant-sources">
-              <span className="small muted">{uz.assistant.askingHint}</span>
-              {SUGGESTIONS.map((chip) => (
-                <span
-                  key={chip}
-                  className="assistant-chip"
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => {
-                    setText(chip)
-                    void ask(chip)
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      setText(chip)
-                      void ask(chip)
-                    }
-                  }}
-                >
-                  {chip}
-                </span>
-              ))}
-            </div>
-            <Button
-              variant="primary"
-              size="lg"
-              disabled={busy || !text.trim()}
-              onClick={() => void ask()}
-            >
-              {busy ? uz.assistant.sending : uz.assistant.send}
-            </Button>
-          </div>
-        </div>
-      </Card>
-
-      <Card title={uz.assistant.historyTitle} flush>
-        {loading ? (
-          <Loading />
-        ) : !data || data.questions.length === 0 ? (
-          <Empty icon="💬" title={uz.assistant.emptyHistory} />
-        ) : (
-          <div className="stack--sm" style={{ gap: 12 }}>
-            {data.questions.slice(0, 20).map((q) => {
-              const answered = q.status === 'answered' || q.status === 'closed'
-              return (
-                <div key={q.id} className="question-bubble">
-                  <div className="row--between">
-                    <div className="strong">{q.question}</div>
-                    <Badge tone={answered ? 'stable' : 'attention'}>
-                      {answered ? uz.assistant.answeredAt : uz.assistant.awaiting}
-                    </Badge>
-                  </div>
-                  {answered && q.answer ? (
-                    <div className="small" style={{ marginTop: 6 }}>{q.answer}</div>
-                  ) : null}
-                  <div className="small muted" style={{ marginTop: 6 }}>
-                    {uz.assistant.askedAt}: {formatDateTime(q.created_at)}
-                    {q.answered_at ? ` · ${uz.assistant.answeredAt}: ${formatDateTime(q.answered_at)}` : ''}
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-        )}
-      </Card>
-    </div>
-  )
+  const questions = [...(data?.questions ?? [])].sort((a, b) => b.created_at.localeCompare(a.created_at))
+  return <div className="ph-page ph-team-page stack">
+    <header className="ph-heading"><div><p className="ph-eyebrow">{t('Yolg‘iz emassiz', 'Вы не одни')}</p><h1>{t('Tibbiy jamoa', 'Медицинская команда')}</h1><p>{t('Savol bering va javoblarni shu yerda kuzating.', 'Задавайте вопросы и следите за ответами здесь.')}</p></div><span className="ph-team-mark"><Icon name="doctor" size={28} /></span></header>
+    <Card>
+      <form className="stack" onSubmit={event => { event.preventDefault(); void ask() }}>
+        <div><h2>{t('Savolingizni yozing', 'Напишите свой вопрос')}</h2><p className="ph-secondary">{t('Xabaringiz tibbiy jamoa navbatiga tushadi. Bu tez yordam kanali emas.', 'Сообщение поступит в очередь медицинской команды. Это не канал экстренной помощи.')}</p></div>
+        {result ? <div role="status">{result.queued ? <Notice tone="success"><strong>{t('Savolingiz yuborildi', 'Вопрос отправлен')}</strong><p>{t('Javob kelganda quyidagi suhbatda ko‘rinadi.', 'Ответ появится в истории ниже.')}</p></Notice> : <Notice tone="info"><strong>{t('Tizimdagi yozuvlar xulosasi', 'Сводка записей системы')}</strong><p>{result.answer}</p></Notice>}{result.priority === 'urgent' ? <Notice tone="danger">{uz.assistant.emergencyBody}</Notice> : null}</div> : null}
+        <label className="field" htmlFor="patient-care-question"><span className="field__label">{t('Sizning savolingiz', 'Ваш вопрос')}</span><Textarea id="patient-care-question" value={text} rows={4} maxLength={2000} placeholder={t('Nima haqida so‘ramoqchisiz?', 'О чём вы хотите спросить?')} onChange={event => setText(event.target.value)} /></label>
+        <div className="ph-question-examples">{examples.map(example => <button type="button" key={example} onClick={() => setText(example)}>{example}</button>)}</div>
+        {error ? <ErrorState message={error} /> : null}
+        <Button type="submit" variant="primary" size="lg" disabled={busy || !text.trim()}>{busy ? uz.assistant.sending : t('Jamoaga yuborish', 'Отправить команде')}<Icon name="arrow" /></Button>
+      </form>
+    </Card>
+    <section className="ph-question-history" aria-labelledby="question-history-title"><div className="ph-section-head"><h2 id="question-history-title">{t('Savollar va javoblar', 'Вопросы и ответы')}</h2><Button variant="ghost" size="sm" onClick={() => void reload()} disabled={loading}>{t('Yangilash', 'Обновить')}</Button></div>
+      {loading && !data ? <Loading /> : historyError ? <ErrorState message={historyError} retry={() => void reload()} /> : questions.length === 0 ? <Card><Empty icon="message" title={t('Hali savollar yo‘q', 'Вопросов пока нет')}>{t('Birinchi savolingizni yuqorida yozing.', 'Напишите первый вопрос выше.')}</Empty></Card> : <div className="stack">{questions.slice(0, 20).map(question => {
+        const answered = Boolean(question.answer)
+        const human = Boolean(question.answered_by) || question.answer_source === 'hospital_staff_answer'
+        return <article key={question.id} className="ph-conversation"><div className="ph-conversation__meta"><span>{formatDateTime(question.created_at)}</span><Badge tone={answered ? 'stable' : question.status === 'closed' ? 'neutral' : 'attention'}>{uz.questions.statusLabel[question.status]}</Badge></div><div className="ph-conversation__question"><span className="ph-message-author">{t('Siz', 'Вы')}</span><p>{question.question}</p></div>{answered ? <div className="ph-conversation__answer"><span className="ph-message-author"><Icon name={human ? 'doctor' : 'file'} size={19} />{human ? question.answered_by_name ?? t('Tibbiy jamoa', 'Медицинская команда') : t('Tizimdagi yozuvlar xulosasi', 'Сводка записей системы')}</span><p>{question.answer}</p>{question.answered_at ? <time>{formatDateTime(question.answered_at)}</time> : null}</div> : <p className="ph-awaiting"><Icon name="clock" size={18} />{question.status === 'closed' ? t('Savol yopilgan', 'Вопрос закрыт') : question.assigned_name ? t(`${question.assigned_name} ko‘rib chiqmoqda`, `На рассмотрении: ${question.assigned_name}`) : t('Tibbiy jamoa javobi kutilmoqda', 'Ожидает ответа медицинской команды')}</p>}</article>
+      })}</div>}
+    </section>
+    <aside className="ph-emergency"><Icon name="phone" size={22} /><p>{t('Keskin yomonlashuvda javob kutmang.', 'При резком ухудшении не ждите ответа.')} <a href="tel:103">{t('103 — tez yordam', '103 — скорая помощь')}</a></p></aside>
+  </div>
 }

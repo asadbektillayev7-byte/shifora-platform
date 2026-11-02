@@ -164,3 +164,22 @@ Patient status is a **monitoring workflow state, not a diagnosis**, and is alway
 shown as icon + word so it never depends on colour alone:
 
 🟢 Barqaror · 🟡 E'tibor kerak · 🔴 Shoshilinch ko'rib chiqish
+
+## Care-platform redesign (November 2026)
+
+Run `npm run dev:web` and choose **Namuna tizimni ochish** on the sign-in screen. The browser-only demo contains 40 fictional patients, catalogue entries, readings, questions, alerts and approved plans. Demo data persists locally; the demo role selector lets you inspect nurse, doctor, patient and caregiver views. Demo tokens never call the real API. `resetDemoData()` in `web/src/lib/demo.ts` resets only the fictional browser data.
+
+The patient medication calendar supports day/week/month/year views and bounded date navigation. Green circles show recorded intake, red circles show unconfirmed scheduled doses, and hollow white circles show waiting doses. Red does not establish that medicine was not taken. Future circles are schedule projections; historical confirmations come from stored dose records. Empty historical periods stay empty.
+
+Clinic medication flow: **Dori kutubxonasi** adds catalogue metadata; a patient's **Davolash rejasi** selects medicines and sets the prescribed dose, meal instructions and exact times. Saving creates an inactive draft. A clinician reviews the chronological schedule, enters a reason, and explicitly approves it. The previous approved version remains in the history.
+
+The shared nurse/doctor demo panel has a **40-patient pilot planning capacity**, not a universal safe staffing ratio. It assumes 300 protected monitoring minutes per staffed day: 80 record review + 80 follow-up + 20 missing-record contacts + 30 onboarding + 30 handoff/documentation + 60 reserve. These are hypotheses to measure in a stable-adult pilot; clinical acuity, actual task times, coverage and doctor review time determine the eventual limit. The doctor oversees the same 40 patients, not an additional 40. Method reference: [WHO WISN](https://www.who.int/tools/wisn).
+
+Before deploying real-account catalogue support, apply the narrow idempotent migration `server/src/db/migrations/20261102_medication_catalog.sql` to the intended database. This task did not migrate the live database. The existing full `schema.sql` also contains the new table for fresh installations. The medication catalogue stores metadata, not prescribing recommendations.
+
+Validation commands:
+
+- `npm --prefix web run build`
+- `node --test web/src/lib/demo.test.mjs`
+- `npm --prefix server run test:unit` (does not require a database)
+- `TEST_DATABASE_URL=postgres://127.0.0.1:PORT/DISPOSABLE_DB npm --prefix server test` (the integration suite resets and seeds its test database)

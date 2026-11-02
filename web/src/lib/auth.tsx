@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 import type { ReactNode } from 'react'
 import { api, tokenStore } from './api'
 import type { AuthContextPayload, User } from './types'
+import { startDemoSession } from './demo'
 
 export type RoleGroup = 'hospital' | 'patient' | 'caregiver'
 
@@ -14,6 +15,7 @@ interface AuthValue {
   session: Session | null
   loading: boolean
   login: (phone: string, password: string, roleGroup: RoleGroup) => Promise<void>
+  demo: (roleGroup: RoleGroup, staffRole?: 'doctor' | 'nurse') => void
   logout: () => Promise<void>
   refresh: () => Promise<void>
 }
@@ -63,9 +65,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
+  const demo = useCallback((roleGroup: RoleGroup, staffRole: 'doctor' | 'nurse' = 'nurse') => {
+    const result = startDemoSession(roleGroup, staffRole)
+    tokenStore.set(result.token)
+    setSession({ user: result.user, context: result.context })
+  }, [])
+
   const value = useMemo(
-    () => ({ session, loading, login, logout, refresh }),
-    [session, loading, login, logout, refresh],
+    () => ({ session, loading, login, demo, logout, refresh }),
+    [session, loading, login, demo, logout, refresh],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

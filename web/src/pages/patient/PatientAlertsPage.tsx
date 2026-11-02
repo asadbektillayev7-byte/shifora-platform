@@ -1,35 +1,65 @@
+import { useEffect, useState } from 'react'
 import { uz } from '../../lib/uz'
-import { useNotifications } from '../../lib/hooks'
-import { Button, Card, Empty } from '../../components/ui'
+import { useLanguage } from '../../lib/i18n'
+import { api } from '../../lib/api'
+import { useApi } from '../../lib/hooks'
+import { Button, Card, Empty, ErrorState, Loading } from '../../components/ui'
+import { Icon } from '../../components/Icon'
+import type { NotificationItem } from '../../lib/types'
 import { timeAgo } from '../../lib/format'
 
 const ICONS: Record<string, string> = {
-  medication_reminder: '💊',
-  monitoring_reminder: '🩸',
-  alert: '🟡',
-  alert_urgent: '🔴',
-  info: 'ℹ️',
+  medication_reminder: 'pill',
+  monitoring_reminder: 'droplet',
+  alert: 'bell',
+  alert_urgent: 'warning',
+  info: 'info',
 }
 
 export function PatientAlertsPage() {
-  const { items, unread, markAllRead, markRead } = useNotifications(true)
+  const { locale } = useLanguage()
+  const { data, loading, error, reload } = useApi<{ notifications: NotificationItem[]; unread: number }>('/me/notifications', [locale])
+  const [actionError, setActionError] = useState<string | null>(null)
+  const [busy, setBusy] = useState(false)
+  useEffect(() => {
+    const timer = setInterval(() => void reload(), 20_000)
+    return () => clearInterval(timer)
+  }, [reload])
+  async function markRead(id?: number) {
+    if (busy) return
+    setBusy(true)
+    setActionError(null)
+    try {
+      await api.post(id === undefined ? '/me/notifications/read-all' : `/me/notifications/${id}/read`)
+      await reload()
+    } catch (err) { setActionError(err instanceof Error ? err.message : uz.app.errorGeneric) }
+    finally { setBusy(false) }
+  }
+  const items = data?.notifications ?? []
+  const unread = data?.unread ?? 0
+  if (loading && !data) return <div className="content"><Loading /></div>
 
   return (
     <div className="content stack">
       <div className="row--between">
         <h1>{uz.notifications.title}</h1>
         {unread > 0 ? (
-          <Button size="sm" onClick={() => void markAllRead()}>{uz.notifications.markAllRead}</Button>
+          <Button size="sm" disabled={busy} onClick={() => void markRead()}>{uz.notifications.markAllRead}</Button>
         ) : null}
       </div>
 
-      {items.length === 0 ? (
-        <Card><Empty icon="🔔" title={uz.notifications.empty} /></Card>
+      {error ? <ErrorState message={error} retry={() => void reload()} /> : null}
+      {actionError ? <ErrorState message={actionError} /> : null}
+
+      {items.length === 0 && !error ? (
+        <Card><Empty icon="bell" title={uz.notifications.empty} /></Card>
       ) : (
         <div className="stack--sm" style={{ gap: 12 }}>
           {items.map((item) => (
             <button
               key={item.id}
+              type="button"
+              disabled={busy}
               className="task"
               style={{
                 background: item.read_at ? 'var(--surface)' : 'var(--teal-50)',
@@ -40,7 +70,7 @@ export function PatientAlertsPage() {
               }}
               onClick={() => { if (!item.read_at) void markRead(item.id) }}
             >
-              <span className="task__icon" aria-hidden>{ICONS[item.type] ?? '🔔'}</span>
+              <span className="task__icon"><Icon name={ICONS[item.type] ?? 'bell'} /></span>
               <div className="task__body">
                 <div className="task__title">{item.title}</div>
                 <div className="task__meta">{item.body}</div>

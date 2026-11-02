@@ -524,6 +524,58 @@ CREATE TABLE IF NOT EXISTS question_notes (
 CREATE INDEX IF NOT EXISTS idx_qnotes_question ON question_notes(question_id);
 
 -- ---------------------------------------------------------------------------
+-- Suggested questions shown to patients before they start a chat.
+-- Ordered by frequency (how often patients have asked them).
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS suggested_questions (
+  id          SERIAL PRIMARY KEY,
+  question    TEXT NOT NULL,
+  frequency   INTEGER NOT NULL DEFAULT 0,
+  category    TEXT NOT NULL DEFAULT 'general',
+  created_at  TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_sq_category ON suggested_questions(category);
+
+-- For databases created before frequency existed; no-op when already applied.
+ALTER TABLE suggested_questions ADD COLUMN IF NOT EXISTS frequency INTEGER NOT NULL DEFAULT 0;
+
+-- Seed suggested questions once the table exists.
+INSERT INTO suggested_questions (question, category) VALUES
+  ('Oxirgi haftada qandim qanday bo''lyapti?', 'glucose'),
+  ('Glyukozam ko''tarilganmi?', 'glucose'),
+  ('Oxirgi 7 kundagi o''lchovlarim qanday?', 'glucose'),
+  ('Tungi glyukoza nimada?', 'glucose'),
+  ('Ovqatdan oldin qanday bo''lishi kerak?', 'glucose'),
+  ('Nima uchun glyukoza ko''tarildi?', 'glucose'),
+  ('Qandim o''lchash kerakmi?', 'general'),
+  ('Shakar darajam qanday tekshiraman?', 'general')
+ON CONFLICT DO NOTHING;
+
+-- ---------------------------------------------------------------------------
+-- Conversations with Hamshira AI. Multi-turn chat history stored here.
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS chat_sessions (
+  id          SERIAL PRIMARY KEY,
+  patient_id  INTEGER NOT NULL REFERENCES patients(id) ON DELETE CASCADE,
+  created_at  TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at  TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_cs_patient ON chat_sessions(patient_id, created_at);
+
+CREATE TABLE IF NOT EXISTS chat_messages (
+  id          SERIAL PRIMARY KEY,
+  session_id  INTEGER NOT NULL REFERENCES chat_sessions(id) ON DELETE CASCADE,
+  role        TEXT NOT NULL CHECK (role IN ('patient','assistant','system')),
+  text        TEXT NOT NULL,
+  question_id INTEGER REFERENCES patient_questions(id) ON DELETE SET NULL,
+  created_at  TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_cm_session ON chat_messages(session_id, created_at);
+
+-- For databases created before question_id existed; no-op when already applied.
+ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS question_id INTEGER REFERENCES patient_questions(id) ON DELETE SET NULL;
+
+-- ---------------------------------------------------------------------------
 -- Audit trail
 -- ---------------------------------------------------------------------------
 
@@ -540,3 +592,26 @@ CREATE TABLE IF NOT EXISTS audit_logs (
 );
 CREATE INDEX IF NOT EXISTS idx_audit_entity ON audit_logs(entity_type, entity_id);
 CREATE INDEX IF NOT EXISTS idx_audit_user ON audit_logs(user_id, created_at);
+
+-- ---------------------------------------------------------------------------
+-- Hospital medicine catalogue. Metadata only; patient doses, times and clinical
+-- instructions remain on versioned, staff-approved care plans.
+-- ---------------------------------------------------------------------------
+
+CREATE TABLE IF NOT EXISTS medication_catalog (
+  id            SERIAL PRIMARY KEY,
+  hospital_id   INTEGER NOT NULL REFERENCES hospitals(id) ON DELETE CASCADE,
+  name          TEXT NOT NULL CHECK (length(trim(name)) BETWEEN 1 AND 160),
+  generic_name  TEXT NOT NULL DEFAULT '' CHECK (length(generic_name) <= 160),
+  strength      TEXT NOT NULL DEFAULT '' CHECK (length(strength) <= 80),
+  form          TEXT NOT NULL DEFAULT '' CHECK (length(form) <= 80),
+  unit          TEXT NOT NULL DEFAULT 'mg' CHECK (length(unit) <= 30),
+  notes         TEXT NOT NULL DEFAULT '' CHECK (length(notes) <= 2000),
+  is_active     INTEGER NOT NULL DEFAULT 1 CHECK (is_active IN (0, 1)),
+  created_at    TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at    TEXT NOT NULL DEFAULT (datetime('now')),
+  created_by    INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  updated_by    INTEGER REFERENCES users(id) ON DELETE SET NULL
+);
+CREATE INDEX IF NOT EXISTS idx_medication_catalog_hospital
+  ON medication_catalog(hospital_id, is_active, lower(name));

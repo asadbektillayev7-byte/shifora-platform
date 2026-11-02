@@ -1,4 +1,6 @@
 import { uz } from '../../lib/uz'
+import { useLanguage } from '../../lib/i18n'
+import { Icon } from '../../components/Icon'
 import type { MeasurementContext } from '../../lib/types'
 import { Button, Card, Checkbox, Field, Input, Notice, Select } from '../../components/ui'
 
@@ -30,11 +32,13 @@ function SlotEditor({ times, withContext, onChange }: {
   withContext: boolean
   onChange: (next: MonitoringSlot[]) => void
 }) {
+  useLanguage()
   return (
     <div className="stack--sm">
       {times.map((slot, index) => (
         <div className="row" key={index} style={{ flexWrap: 'nowrap' }}>
           <Input
+            aria-label={uz.register.measurementTimes}
             type="time"
             value={slot.time_of_day}
             style={{ width: 130 }}
@@ -46,6 +50,7 @@ function SlotEditor({ times, withContext, onChange }: {
           />
           {withContext ? (
             <Select
+              aria-label={uz.measurements.contextLabel}
               value={slot.context}
               style={{ maxWidth: 200 }}
               onChange={(e) => {
@@ -65,7 +70,7 @@ function SlotEditor({ times, withContext, onChange }: {
             aria-label={uz.app.remove}
             onClick={() => onChange(times.filter((_, i) => i !== index))}
           >
-            ✕
+            <Icon name="close" size={18} />
           </Button>
         </div>
       ))}
@@ -74,7 +79,7 @@ function SlotEditor({ times, withContext, onChange }: {
           size="sm"
           onClick={() => onChange([...times, { time_of_day: '12:00', context: 'any' }])}
         >
-          ➕ {uz.register.addTime}
+          <Icon name="plus" size={18} />{uz.register.addTime}
         </Button>
       </div>
     </div>
@@ -87,13 +92,14 @@ export function MonitoringEditor({ value, onChange, cgmEnabled, onCgmChange }: {
   cgmEnabled: boolean
   onCgmChange: (next: boolean) => void
 }) {
+  const { t } = useLanguage()
   const patch = (changes: Partial<MonitoringDraft>) => onChange({ ...value, ...changes })
 
   return (
     <div className="stack">
       <Notice tone="info">{uz.register.monitoringHint}</Notice>
 
-      <Card title={`🩸 ${uz.register.monitoringGlucose}`}>
+      <Card title={uz.register.monitoringGlucose}>
         <div className="stack">
           <Checkbox
             checked={value.glucose.enabled}
@@ -107,7 +113,7 @@ export function MonitoringEditor({ value, onChange, cgmEnabled, onCgmChange }: {
                 },
               })
             }
-            label="Glyukoza o‘lchovi kuzatilsin"
+            label={t('Glyukoza o‘lchovi kuzatilsin', 'Отслеживать измерения глюкозы')}
           />
           {value.glucose.enabled ? (
             <Field
@@ -136,7 +142,7 @@ export function MonitoringEditor({ value, onChange, cgmEnabled, onCgmChange }: {
         </div>
       </Card>
 
-      <Card title={`🫀 ${uz.register.monitoringBp}`}>
+      <Card title={uz.register.monitoringBp}>
         <div className="stack">
           <Checkbox
             checked={value.blood_pressure.enabled}
@@ -150,7 +156,7 @@ export function MonitoringEditor({ value, onChange, cgmEnabled, onCgmChange }: {
                 },
               })
             }
-            label="Qon bosimi kuzatilsin"
+            label={t('Qon bosimi kuzatilsin', 'Отслеживать артериальное давление')}
           />
           {value.blood_pressure.enabled ? (
             <Field label={uz.register.measurementTimes}>
@@ -164,7 +170,7 @@ export function MonitoringEditor({ value, onChange, cgmEnabled, onCgmChange }: {
         </div>
       </Card>
 
-      <Card title={`💬 ${uz.register.monitoringSymptom}`}>
+      <Card title={uz.register.monitoringSymptom}>
         <div className="stack">
           <Checkbox
             checked={value.symptom.enabled}
@@ -178,7 +184,7 @@ export function MonitoringEditor({ value, onChange, cgmEnabled, onCgmChange }: {
                 },
               })
             }
-            label="Kunlik holat so‘rovi yuborilsin"
+            label={t('Kunlik holat so‘rovi yuborilsin', 'Отправлять ежедневный опрос о самочувствии')}
           />
           {value.symptom.enabled ? (
             <Field label={uz.register.measurementTimes}>
@@ -192,7 +198,7 @@ export function MonitoringEditor({ value, onChange, cgmEnabled, onCgmChange }: {
         </div>
       </Card>
 
-      <Card title={`💊 ${uz.register.monitoringMedication}`}>
+      <Card title={uz.register.monitoringMedication}>
         <p className="muted small">{uz.register.monitoringMedicationNote}</p>
       </Card>
     </div>

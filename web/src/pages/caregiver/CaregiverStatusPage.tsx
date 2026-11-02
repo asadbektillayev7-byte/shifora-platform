@@ -1,6 +1,7 @@
 import { uz } from '../../lib/uz'
+import { useLanguage } from '../../lib/i18n'
 import { useApi } from '../../lib/hooks'
-import { Card, Empty, Loading, Meter, Notice, StatusBadge } from '../../components/ui'
+import { Card, Empty, ErrorState, Loading, Meter, Notice, StatusBadge } from '../../components/ui'
 import type { BloodPressureReading, GlucoseReading } from '../../lib/types'
 import { formatDateTime, timeAgo } from '../../lib/format'
 import { PatientSwitcher, useCaregiverPatient } from './CaregiverApp'
@@ -13,10 +14,12 @@ interface Detail {
 }
 
 export function CaregiverStatusPage() {
+  const { locale } = useLanguage()
   const { patient } = useCaregiverPatient()
-  const { data, loading } = useApi<Detail>(`/caregiver/patients/${patient.id}`, [patient.id])
+  const { data, loading, error, reload } = useApi<Detail>(`/caregiver/patients/${patient.id}`, [patient.id, locale])
 
-  if (loading || !data) return <div className="content"><Loading /></div>
+  if (loading) return <div className="content"><Loading /></div>
+  if (error || !data) return <div className="content"><ErrorState message={error ?? uz.app.errorGeneric} retry={() => void reload()} /></div>
 
   return (
     <div className="content stack">
@@ -31,12 +34,12 @@ export function CaregiverStatusPage() {
         <p className="small muted" style={{ marginTop: 10 }}>{uz.status.note}</p>
       </Card>
 
-      {data.adherence ? (
+      {data.permissions.view_adherence && data.adherence ? (
         <Card title={uz.caregiver.adherence7d}>
           <div className="row" style={{ flexWrap: 'nowrap' }}>
             <Meter value={data.adherence.d7.rate} />
             <span className="strong" style={{ fontSize: '1.3rem' }}>
-              {data.adherence.d7.rate ?? '—'}%
+              {data.adherence.d7.rate === null ? uz.patients.noData : `${data.adherence.d7.rate}%`}
             </span>
           </div>
           <p className="small muted" style={{ marginTop: 8 }}>
@@ -45,21 +48,21 @@ export function CaregiverStatusPage() {
           </p>
         </Card>
       ) : (
-        <Card><Empty icon="🔒" title={uz.caregiver.noAccess} /></Card>
+        <Card><Empty icon={data.permissions.view_adherence ? 'chart' : 'shield'} title={data.permissions.view_adherence ? uz.patients.noData : uz.caregiver.noAccess} /></Card>
       )}
 
-      {data.measurements ? (
+      {data.permissions.view_measurements && data.measurements ? (
         <>
-          <Card title={`🩸 ${uz.measurements.glucose}`} flush>
+          <Card title={uz.measurements.glucose} flush>
             {data.measurements.glucose.length === 0 ? (
-              <Empty icon="🩸" title={uz.measurements.noReadings} />
+              <Empty icon="droplet" title={uz.measurements.noReadings} />
             ) : (
               <div className="table-wrap">
                 <table className="table">
                   <tbody>
                     {data.measurements.glucose.map((reading) => (
                       <tr key={reading.id} style={{ cursor: 'default' }}>
-                        <td className="strong">{reading.value} <span className="muted small">mg/dL</span></td>
+                        <td className="strong">{reading.value} <span className="muted small">{reading.unit}</span></td>
                         <td className="small muted" style={{ textAlign: 'end' }}>
                           {formatDateTime(reading.measured_at)}
                         </td>
@@ -71,9 +74,9 @@ export function CaregiverStatusPage() {
             )}
           </Card>
 
-          <Card title={`🫀 ${uz.measurements.bloodPressure}`} flush>
+          <Card title={uz.measurements.bloodPressure} flush>
             {data.measurements.blood_pressure.length === 0 ? (
-              <Empty icon="🫀" title={uz.measurements.noReadings} />
+              <Empty icon="heart" title={uz.measurements.noReadings} />
             ) : (
               <div className="table-wrap">
                 <table className="table">
@@ -95,7 +98,7 @@ export function CaregiverStatusPage() {
           </Card>
         </>
       ) : (
-        <Notice tone="info">{uz.caregiver.accessNote}</Notice>
+        <Notice tone="info">{data.permissions.view_measurements ? uz.measurements.noReadings : uz.caregiver.accessNote}</Notice>
       )}
     </div>
   )

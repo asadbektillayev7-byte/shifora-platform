@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { uz } from '../lib/uz'
+import { useLanguage } from '../lib/i18n'
 import { api, ApiError } from '../lib/api'
 import { nowInputValue } from '../lib/format'
 import type { MeasurementContext } from '../lib/types'
@@ -20,6 +21,7 @@ function toApiTime(value: string) {
 }
 
 export function GlucoseForm({ onClose, onSaved, patientId, defaultContext = 'fasting' }: FormProps) {
+  useLanguage()
   const [value, setValue] = useState('')
   const [context, setContext] = useState<MeasurementContext>(defaultContext)
   const [measuredAt, setMeasuredAt] = useState(nowInputValue())
@@ -29,6 +31,7 @@ export function GlucoseForm({ onClose, onSaved, patientId, defaultContext = 'fas
   const [busy, setBusy] = useState(false)
 
   async function submit() {
+    if (busy) return
     if (!value.trim()) {
       setErrors({ value: uz.validation.required })
       return
@@ -100,6 +103,7 @@ export function GlucoseForm({ onClose, onSaved, patientId, defaultContext = 'fas
 }
 
 export function BloodPressureForm({ onClose, onSaved, patientId }: FormProps) {
+  useLanguage()
   const [systolic, setSystolic] = useState('')
   const [diastolic, setDiastolic] = useState('')
   const [pulse, setPulse] = useState('')
@@ -110,6 +114,7 @@ export function BloodPressureForm({ onClose, onSaved, patientId }: FormProps) {
   const [busy, setBusy] = useState(false)
 
   async function submit() {
+    if (busy) return
     const next: Record<string, string> = {}
     if (!systolic.trim()) next.systolic = uz.validation.required
     if (!diastolic.trim()) next.diastolic = uz.validation.required
@@ -192,6 +197,7 @@ const SYMPTOM_KEYS = [
 ] as const
 
 export function SymptomForm({ onClose, onSaved, patientId }: FormProps) {
+  useLanguage()
   const [feeling, setFeeling] = useState<'good' | 'not_good' | 'bad' | ''>('')
   const [symptoms, setSymptoms] = useState<string[]>([])
   const [note, setNote] = useState('')
@@ -203,6 +209,7 @@ export function SymptomForm({ onClose, onSaved, patientId }: FormProps) {
   }
 
   async function submit() {
+    if (busy) return
     if (!feeling) {
       setError(uz.validation.required)
       return
@@ -225,9 +232,9 @@ export function SymptomForm({ onClose, onSaved, patientId }: FormProps) {
   }
 
   const FEELINGS = [
-    { key: 'good', icon: '🙂', label: uz.symptoms.good },
-    { key: 'not_good', icon: '😐', label: uz.symptoms.not_good },
-    { key: 'bad', icon: '🙁', label: uz.symptoms.bad },
+    { key: 'good', label: uz.symptoms.good },
+    { key: 'not_good', label: uz.symptoms.not_good },
+    { key: 'bad', label: uz.symptoms.bad },
   ] as const
 
   return (
@@ -254,11 +261,11 @@ export function SymptomForm({ onClose, onSaved, patientId }: FormProps) {
               <button
                 key={option.key}
                 type="button"
+                aria-pressed={feeling === option.key}
                 className={`radio ${feeling === option.key ? 'radio--on' : ''}`}
                 onClick={() => setFeeling(option.key)}
                 style={{ fontSize: '1.05rem', minHeight: 56 }}
               >
-                <span aria-hidden style={{ fontSize: '1.5rem' }}>{option.icon}</span>
                 <span className="strong">{option.label}</span>
               </button>
             ))}
@@ -272,6 +279,7 @@ export function SymptomForm({ onClose, onSaved, patientId }: FormProps) {
                 <button
                   key={key}
                   type="button"
+                  aria-pressed={symptoms.includes(key)}
                   className={`chip ${symptoms.includes(key) ? 'chip--on' : ''}`}
                   onClick={() => toggle(key)}
                 >

@@ -1,6 +1,8 @@
-import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode, SelectHTMLAttributes, TextareaHTMLAttributes } from 'react'
+import { cloneElement, isValidElement, useEffect, useId, useRef } from 'react'
+import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactElement, ReactNode, SelectHTMLAttributes, TextareaHTMLAttributes } from 'react'
 import { uz } from '../lib/uz'
 import type { PatientStatus, Severity } from '../lib/types'
+import { Icon } from './Icon'
 
 /* -------------------------------------------------------------- buttons */
 
@@ -22,7 +24,7 @@ export function Button({
     className,
   ].filter(Boolean).join(' ')
   return (
-    <button className={classes} {...rest}>
+    <button type="button" className={classes} {...rest}>
       {icon ? <span aria-hidden>{icon}</span> : null}
       {children}
     </button>
@@ -40,14 +42,19 @@ interface FieldProps {
 }
 
 export function Field({ label, required, hint, error, children }: FieldProps) {
+  const generatedId = useId()
+  const control = isValidElement(children) ? children as ReactElement<{ id?: string; 'aria-describedby'?: string; 'aria-invalid'?: boolean }> : null
+  const id = control?.props.id ?? generatedId
+  const describedBy = error || hint ? `${id}-help` : undefined
+  const isControl = control && (control.type === Input || control.type === Select || control.type === Textarea || ['input', 'select', 'textarea'].includes(String(control.type)))
   return (
     <div className="field">
-      <label className="field__label">
+      <label className="field__label" htmlFor={isControl ? id : undefined}>
         {label} {required ? <span className="field__req" aria-hidden>*</span> : null}
       </label>
-      {children}
-      {hint && !error ? <span className="field__hint">{hint}</span> : null}
-      {error ? <span className="field__error" role="alert">⚠ {error}</span> : null}
+      {isControl ? cloneElement(control, { id, 'aria-describedby': describedBy, 'aria-invalid': Boolean(error) }) : children}
+      {hint && !error ? <span id={describedBy} className="field__hint">{hint}</span> : null}
+      {error ? <span id={describedBy} className="field__error" role="alert">{error}</span> : null}
     </div>
   )
 }
@@ -113,32 +120,30 @@ export function Card({ title, action, children, flush, subtitle }: {
 /* --------------------------------------------------------------- badges */
 
 /** Status is always icon + word — never colour alone. */
-const STATUS_META: Record<PatientStatus, { icon: string; label: string }> = {
-  stable: { icon: '🟢', label: uz.status.stable },
-  attention: { icon: '🟡', label: uz.status.attention },
-  urgent: { icon: '🔴', label: uz.status.urgentShort },
-}
-
 export function StatusBadge({ status, size }: { status: PatientStatus; size?: 'lg' }) {
+  const STATUS_META: Record<PatientStatus, { icon: string; label: string }> = {
+    stable: { icon: 'check', label: uz.status.stable },
+    attention: { icon: 'clock', label: uz.status.attention },
+    urgent: { icon: 'warning', label: uz.status.urgentShort },
+  }
   const meta = STATUS_META[status] ?? STATUS_META.stable
   return (
     <span className={`badge badge--${status} ${size === 'lg' ? 'badge--lg' : ''}`}>
-      <span aria-hidden>{meta.icon}</span> {meta.label}
+      <Icon name={meta.icon} size={14} /> {meta.label}
     </span>
   )
 }
 
-const SEVERITY_META: Record<Severity, { icon: string; label: string; cls: string }> = {
-  info: { icon: '🟢', label: uz.severity.info, cls: 'stable' },
-  warning: { icon: '🟡', label: uz.severity.warning, cls: 'attention' },
-  urgent: { icon: '🔴', label: uz.severity.urgent, cls: 'urgent' },
-}
-
 export function SeverityBadge({ severity }: { severity: Severity }) {
+  const SEVERITY_META: Record<Severity, { icon: string; label: string; cls: string }> = {
+    info: { icon: 'info', label: uz.severity.info, cls: 'stable' },
+    warning: { icon: 'clock', label: uz.severity.warning, cls: 'attention' },
+    urgent: { icon: 'warning', label: uz.severity.urgent, cls: 'urgent' },
+  }
   const meta = SEVERITY_META[severity] ?? SEVERITY_META.info
   return (
     <span className={`badge badge--${meta.cls}`}>
-      <span aria-hidden>{meta.icon}</span> {meta.label}
+      <Icon name={meta.icon} size={14} /> {meta.label}
     </span>
   )
 }
@@ -157,10 +162,10 @@ export function Notice({ tone = 'info', icon, children }: {
   icon?: ReactNode
   children: ReactNode
 }) {
-  const defaultIcon = { info: 'ℹ️', warning: '⚠️', danger: '⛔', success: '✅', ai: '🤖' }[tone]
+  const defaultIcon = { info: 'info', warning: 'warning', danger: 'warning', success: 'check', ai: 'message' }[tone]
   return (
     <div className={`notice notice--${tone}`}>
-      <span className="notice__icon" aria-hidden>{icon ?? defaultIcon}</span>
+      <span className="notice__icon" aria-hidden>{typeof icon === 'string' || !icon ? <Icon name={typeof icon === 'string' ? icon : defaultIcon} /> : icon}</span>
       <div>{children}</div>
     </div>
   )
@@ -171,7 +176,7 @@ export function Notice({ tone = 'info', icon, children }: {
 export function Empty({ icon = '📋', title, children }: { icon?: string; title: string; children?: ReactNode }) {
   return (
     <div className="empty">
-      <span className="empty__icon" aria-hidden>{icon}</span>
+      <span className="empty__icon" aria-hidden><Icon name={icon} size={30} /></span>
       <div className="empty__title">{title}</div>
       {children ? <div className="small">{children}</div> : null}
     </div>
@@ -193,6 +198,28 @@ export function Modal({ title, onClose, children, footer }: {
   children: ReactNode
   footer?: ReactNode
 }) {
+  const modal = useRef<HTMLDivElement>(null)
+  const close = useRef(onClose)
+  close.current = onClose
+  useEffect(() => {
+    const previous = document.activeElement as HTMLElement | null
+    const priorOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    const element = modal.current
+    const focusable = () => Array.from(element?.querySelectorAll<HTMLElement>('button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), a[href], [tabindex="0"]') ?? []).filter(node => node.offsetParent !== null)
+    const controls = focusable()
+    ;(controls.find(control => control.tagName !== 'BUTTON') ?? controls[0])?.focus()
+    const keydown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') { event.preventDefault(); close.current() }
+      if (event.key !== 'Tab') return
+      const nodes = focusable()
+      const first = nodes[0], last = nodes[nodes.length - 1]
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus() }
+      if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus() }
+    }
+    document.addEventListener('keydown', keydown)
+    return () => { document.removeEventListener('keydown', keydown); document.body.style.overflow = priorOverflow; previous?.focus() }
+  }, [])
   return (
     <div
       className="modal-backdrop"
@@ -201,16 +228,20 @@ export function Modal({ title, onClose, children, footer }: {
       aria-label={title}
       onClick={(e) => { if (e.target === e.currentTarget) onClose() }}
     >
-      <div className="modal">
+      <div className="modal" ref={modal}>
         <header className="modal__head">
           <h2>{title}</h2>
-          <Button variant="ghost" size="sm" onClick={onClose} aria-label={uz.app.close}>✕</Button>
+          <Button variant="ghost" size="sm" onClick={onClose} aria-label={uz.app.close}><Icon name="close" /></Button>
         </header>
         <div className="modal__body">{children}</div>
         {footer ? <footer className="modal__foot">{footer}</footer> : null}
       </div>
     </div>
   )
+}
+
+export function ErrorState({ message, retry }: { message: string; retry?: () => void }) {
+  return <Notice tone="danger"><div className="stack--sm"><strong>{message}</strong>{retry ? <Button onClick={retry}>{uz.app.retry}</Button> : null}</div></Notice>
 }
 
 export function Meter({ value }: { value: number | null }) {

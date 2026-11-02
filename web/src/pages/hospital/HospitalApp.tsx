@@ -11,10 +11,12 @@ import { AlertCenterPage } from './AlertCenterPage'
 import { QuestionsPage } from './QuestionsPage'
 import { ReportsPage } from './ReportsPage'
 import { PatientProfilePage } from './PatientProfilePage'
+import { MedicationsPage } from './MedicationsPage'
+import { useLanguage } from '../../lib/i18n'
 
 const BASE = '/shifoxona'
 
-const TITLES: { match: RegExp; title: string }[] = [
+function titles(): { match: RegExp; title: string }[] { return [
   { match: /^\/shifoxona\/bemorlar\/\d+/, title: uz.patientProfile.title },
   { match: /^\/shifoxona\/bemorlar/, title: uz.nav.hospital.patients },
   { match: /^\/shifoxona\/royxat/, title: uz.nav.hospital.register },
@@ -23,21 +25,23 @@ const TITLES: { match: RegExp; title: string }[] = [
   { match: /^\/shifoxona\/savollar/, title: uz.nav.hospital.questions },
   { match: /^\/shifoxona\/hisobotlar/, title: uz.nav.hospital.reports },
   { match: /^\/shifoxona/, title: uz.nav.hospital.home },
-]
+] }
 
 export function HospitalApp() {
+  const { t } = useLanguage()
   const { session } = useAuth()
   const location = useLocation()
   const { data: stats } = useApi<{ urgent: number; open_alerts: number }>('/patients/stats')
   const { data: queue } = useApi<{ counts: { unanswered: number } }>('/questions?limit=1')
 
-  const title = TITLES.find((entry) => entry.match.test(location.pathname))?.title ?? uz.app.name
+  const title = location.pathname.startsWith(`${BASE}/dorilar`) ? t('Dori kutubxonasi', 'Библиотека лекарств') : titles().find((entry) => entry.match.test(location.pathname))?.title ?? uz.app.name
 
   const items = [
     { to: BASE, label: uz.nav.hospital.home, icon: '🏠' },
     { to: `${BASE}/bemorlar`, label: uz.nav.hospital.patients, icon: '👥' },
     { to: `${BASE}/royxat`, label: uz.nav.hospital.register, icon: '➕' },
     { to: `${BASE}/rejalar`, label: uz.nav.hospital.carePlans, icon: '📋' },
+    { to: `${BASE}/dorilar`, label: t('Dori kutubxonasi', 'Библиотека лекарств'), icon: 'pill' },
     { to: `${BASE}/ogohlantirishlar`, label: uz.nav.hospital.alerts, icon: '🔔', badge: stats?.open_alerts },
     { to: `${BASE}/savollar`, label: uz.nav.hospital.questions, icon: '❓', badge: queue?.counts.unanswered },
     { to: `${BASE}/hisobotlar`, label: uz.nav.hospital.reports, icon: '📊' },
@@ -55,6 +59,7 @@ export function HospitalApp() {
         <Route path="bemorlar/:id" element={<PatientProfilePage />} />
         <Route path="royxat" element={<RegisterPatientPage />} />
         <Route path="rejalar" element={<CarePlansPage />} />
+        <Route path="dorilar" element={<MedicationsPage />} />
         <Route path="ogohlantirishlar" element={<AlertCenterPage />} />
         <Route path="savollar" element={<QuestionsPage />} />
         <Route path="hisobotlar" element={<ReportsPage />} />
