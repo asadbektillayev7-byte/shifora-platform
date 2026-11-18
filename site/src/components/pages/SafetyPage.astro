@@ -1,0 +1,79 @@
+---
+import PageHead from '../PageHead.astro'
+import Cta from '../home/Cta.astro'
+import type { Dict, Locale } from '../../i18n'
+interface Props { t: Dict; locale: Locale }
+const { t } = Astro.props
+const p = t.pages.safety
+---
+<PageHead eyebrow={p.eyebrow} title={p.h1} lead={p.lead} />
+<section class="sp section">
+  <div class="container">
+    <ol class="sp__principles">
+      {t.safety.items.map((it, i) => (
+        <li data-reveal style={`--i:${(i % 2) + 1}`}>
+          <span class="sp__n num">{String(i + 1).padStart(2, '0')}</span>
+          <div><h2 class="h4">{it.title}</h2><p class="body small">{it.text}</p></div>
+        </li>
+      ))}
+    </ol>
+  </div>
+</section>
+<section class="sp sp--alt section">
+  <div class="container sp__cols">
+    <div data-reveal>
+      <h2 class="title-sm">{p.notTitle}</h2>
+      <ul class="sp__not">{p.not.map(x => <li>{x}</li>)}</ul>
+    </div>
+    <div data-reveal style="--i:1">
+      <h2 class="title-sm">{p.aiTitle}</h2>
+      <ol class="sp__ai">{p.ai.map(x => <li>{x}</li>)}</ol>
+    </div>
+  </div>
+</section>
+<section class="sp section">
+  <div class="container sp__cols sp__cols--wide">
+    <h2 class="title-sm" data-reveal>{p.securityTitle}</h2>
+    <dl class="sp__sec" data-reveal style="--i:1">
+      {p.security.map(row => <div><dt>{row.k}</dt><dd>{row.v}</dd></div>)}
+    </dl>
+  </div>
+</section>
+<section class="sp sp--alt section--tight">
+  <div class="container sp__cols sp__cols--wide">
+    <h2 class="title-sm" data-reveal>{p.statusTitle}</h2>
+    <div data-reveal style="--i:1">
+      <p class="body">{p.statusText}</p>
+      <ul class="sp__statuses">
+        {p.statuses.map((s, i) => <li class={`status status--${i}`}><i></i>{s}</li>)}
+      </ul>
+    </div>
+  </div>
+</section>
+<Cta t={t} />
+<style>
+  .sp--alt { background: var(--paper-2); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+  .sp__principles { display: grid; grid-template-columns: 1fr 1fr; gap: 0 clamp(24px, 4vw, 64px); border-top: 1px solid var(--line-strong); }
+  .sp__principles li { display: grid; grid-template-columns: 52px 1fr; gap: 16px; padding: 28px 0; border-bottom: 1px solid var(--line); }
+  .sp__n { font-size: 26px; color: var(--teal-700); line-height: 1.1; }
+  .sp__principles .body { margin-top: 8px; }
+  .sp__cols { display: grid; grid-template-columns: 1fr 1fr; gap: clamp(28px, 5vw, 80px); align-items: start; }
+  .sp__cols--wide { grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); }
+  .sp__not, .sp__ai { margin-top: 20px; display: grid; gap: 12px; }
+  .sp__not li { position: relative; padding-left: 22px; color: var(--ink-2); }
+  .sp__not li::before { content: ''; position: absolute; left: 0; top: 12px; width: 12px; height: 1.5px; background: var(--red); }
+  .sp__ai { counter-reset: ai; }
+  .sp__ai li { position: relative; padding-left: 36px; color: var(--ink-2); counter-increment: ai; }
+  .sp__ai li::before { content: counter(ai, decimal-leading-zero); position: absolute; left: 0; top: 1px; font-family: var(--font-serif); color: var(--teal-700); font-size: 18px; }
+  .sp__sec { display: grid; border-top: 1px solid var(--line-strong); }
+  .sp__sec div { display: grid; grid-template-columns: 200px 1fr; gap: 16px; padding: 18px 0; border-bottom: 1px solid var(--line); }
+  .sp__sec dt { font-weight: 580; }
+  .sp__sec dd { margin: 0; color: var(--ink-2); }
+  .sp__statuses { margin-top: 20px; display: flex; flex-wrap: wrap; gap: 10px; }
+  .status { display: inline-flex; align-items: center; gap: 8px; padding: 8px 14px; border-radius: 999px; font-weight: 560; font-size: 14.5px; }
+  .status i { width: 9px; height: 9px; border-radius: 50%; background: currentColor; }
+  .status--0 { background: var(--teal-50); color: var(--teal-700); }
+  .status--1 { background: var(--amber-soft); color: var(--amber-ink); }
+  .status--2 { background: var(--red-soft); color: var(--red); }
+  @media (max-width: 860px) { .sp__principles, .sp__cols, .sp__cols--wide { grid-template-columns: 1fr; } .sp__sec div { grid-template-columns: 1fr; gap: 4px; } }
+</style>

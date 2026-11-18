@@ -1,0 +1,17 @@
+---
+import { rich } from '../i18n'
+interface Props { eyebrow: string; title: string; lead: string }
+const { eyebrow, title, lead } = Astro.props
+---
+<header class="phead">
+  <div class="container">
+    <p class="eyebrow" data-reveal>{eyebrow}</p>
+    <h1 class="display phead__title" data-reveal style="--i:1" set:html={rich(title)} />
+    <p class="lead phead__lead" data-reveal style="--i:2">{lead}</p>
+  </div>
+</header>
+<style>
+  .phead { padding: clamp(40px, 6vw, 88px) 0 clamp(32px, 5vw, 64px); border-bottom: 1px solid var(--line); }
+  .phead__title { margin-top: 22px; max-width: 14em; font-size: clamp(40px, 5.6vw, 80px); }
+  .phead__lead { margin-top: 26px; max-width: 38em; }
+</style>

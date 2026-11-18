@@ -1,0 +1,45 @@
+---
+import PageHead from '../PageHead.astro'
+import Pilot from '../home/Pilot.astro'
+import Capacity from '../home/Capacity.astro'
+import Faq from '../home/Faq.astro'
+import Cta from '../home/Cta.astro'
+import type { Dict, Locale } from '../../i18n'
+interface Props { t: Dict; locale: Locale }
+const { t, locale } = Astro.props
+const p = t.pages.pilot
+---
+<PageHead eyebrow={p.eyebrow} title={p.h1} lead={p.lead} />
+<Pilot t={t} locale={locale} compact />
+<section class="pp section">
+  <div class="container pp__grid">
+    <div data-reveal>
+      <h2 class="title-sm">{p.whoTitle}</h2>
+      <ul class="pp__list">{p.who.map(x => <li>{x}</li>)}</ul>
+    </div>
+    <div data-reveal style="--i:1">
+      <h2 class="title-sm">{p.needTitle}</h2>
+      <ul class="pp__list">{p.need.map(x => <li>{x}</li>)}</ul>
+    </div>
+    <div data-reveal style="--i:2" class="pp__measure">
+      <h2 class="title-sm">{p.measureTitle}</h2>
+      <dl class="pp__dl">{p.measure.map(m => <div><dt>{m.k}</dt><dd>{m.v}</dd></div>)}</dl>
+    </div>
+  </div>
+</section>
+<Capacity t={t} />
+<Faq t={t} />
+<Cta t={t} />
+<style>
+  .pp__grid { display: grid; grid-template-columns: 1fr 1fr; gap: clamp(28px, 5vw, 72px); }
+  .pp__list { margin-top: 18px; display: grid; gap: 10px; }
+  .pp__list li { position: relative; padding-left: 20px; color: var(--ink-2); }
+  .pp__list li::before { content: ''; position: absolute; left: 0; top: 11px; width: 7px; height: 7px; background: var(--teal-700); border-radius: 2px; }
+  .pp__measure { grid-column: 1 / -1; }
+  .pp__dl { margin-top: 18px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; border-top: 1px solid var(--line-strong); }
+  .pp__dl div { padding-top: 16px; }
+  .pp__dl dt { font-weight: 580; }
+  .pp__dl dd { margin: 6px 0 0; color: var(--ink-2); font-size: 15px; }
+  @media (max-width: 860px) { .pp__grid { grid-template-columns: 1fr; } .pp__dl { grid-template-columns: 1fr 1fr; } }
+  @media (max-width: 520px) { .pp__dl { grid-template-columns: 1fr; } }
+</style>

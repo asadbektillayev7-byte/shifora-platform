@@ -1,0 +1,103 @@
+---
+import { Image } from 'astro:assets'
+import Arrow from '../Arrow.astro'
+import { screen } from '../../lib/screens'
+import { pathFor, rich, type Dict, type Locale } from '../../i18n'
+interface Props { t: Dict; locale: Locale }
+const { t, locale } = Astro.props
+const f = (key: string) => t.platform.features.find(x => x.key === key)!
+const two1 = ['alerts', 'plans']
+const phones = ['m-patient-home', 'm-patient-meds', 'm-caregiver-home']
+const two2 = ['reports', 'questions']
+const ai = f('m-patient-assistant')
+---
+<section class="plat section" id="platform">
+  <div class="container">
+    <header class="plat__head">
+      <div>
+        <p class="eyebrow" data-reveal>{t.platform.eyebrow}</p>
+        <h2 class="title" data-reveal style="--i:1" set:html={rich(t.platform.title)} />
+      </div>
+      <div class="plat__head-side" data-reveal style="--i:2">
+        <p class="lead">{t.platform.lead}</p>
+        <a class="link" href={pathFor(locale, 'platform')}>{t.platform.more}<Arrow /></a>
+      </div>
+    </header>
+
+    <div class="plat__stage" data-reveal>
+      <div class="plat__stage-copy">
+        <span class="tag">{f('dashboard').tag}</span>
+        <h3 class="title-sm">{f('dashboard').title}</h3>
+        <p class="body">{f('dashboard').text}</p>
+      </div>
+      <figure class="frame frame--bar"><Image src={screen('dashboard')} alt={f('dashboard').title} widths={[720, 1080, 1600]} sizes="(max-width: 980px) 92vw, 62vw" /></figure>
+    </div>
+
+    <div class="plat__two">
+      {two1.map((k, i) => (
+        <article data-reveal style={`--i:${i + 1}`}>
+          <figure class="frame frame--bar"><Image src={screen(k)} alt={f(k).title} widths={[640, 960, 1280]} sizes="(max-width: 980px) 92vw, 46vw" /></figure>
+          <span class="tag">{f(k).tag}</span>
+          <h3 class="h4">{f(k).title}</h3>
+          <p class="body small">{f(k).text}</p>
+        </article>
+      ))}
+    </div>
+
+    <div class="plat__phones">
+      {phones.map((k, i) => (
+        <article data-reveal style={`--i:${i + 1}`}>
+          <figure class="phone"><Image src={screen(k)} alt={f(k).title} widths={[320, 480, 640]} sizes="(max-width: 700px) 70vw, 280px" /></figure>
+          <span class="tag">{f(k).tag}</span>
+          <h3 class="h4">{f(k).title}</h3>
+          <p class="body small">{f(k).text}</p>
+        </article>
+      ))}
+    </div>
+
+    <div class="plat__two">
+      {two2.map((k, i) => (
+        <article data-reveal style={`--i:${i + 1}`}>
+          <figure class="frame frame--bar"><Image src={screen(k)} alt={f(k).title} widths={[640, 960, 1280]} sizes="(max-width: 980px) 92vw, 46vw" /></figure>
+          <span class="tag">{f(k).tag}</span>
+          <h3 class="h4">{f(k).title}</h3>
+          <p class="body small">{f(k).text}</p>
+        </article>
+      ))}
+    </div>
+
+    <div class="plat__ai" data-reveal>
+      <figure class="phone plat__ai-phone"><Image src={screen('m-patient-assistant')} alt={ai.title} widths={[320, 480, 640]} sizes="(max-width: 700px) 60vw, 260px" /></figure>
+      <div class="plat__ai-copy">
+        <span class="tag tag--amber">{ai.tag}</span>
+        <h3 class="title-sm">{ai.title}</h3>
+        <p class="body">{ai.text}</p>
+      </div>
+    </div>
+  </div>
+</section>
+<style>
+  .plat__head { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: clamp(24px, 4vw, 64px); align-items: end; }
+  .plat__head .title { margin-top: 20px; }
+  .plat__head-side { display: grid; gap: 18px; justify-items: start; }
+  .tag { font-size: 12px; font-weight: 620; letter-spacing: .12em; text-transform: uppercase; color: var(--teal-700); }
+  .tag--amber { color: var(--amber-ink); }
+  .plat__stage { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); gap: clamp(24px, 4vw, 56px); align-items: center; margin-top: clamp(40px, 6vw, 80px); }
+  .plat__stage-copy { display: grid; gap: 14px; }
+  .plat__two { display: grid; grid-template-columns: 1fr 1fr; gap: clamp(24px, 4vw, 48px); margin-top: clamp(40px, 6vw, 80px); }
+  .plat__two article, .plat__phones article { display: grid; gap: 10px; align-content: start; }
+  .plat__two .frame, .plat__phones .phone { margin-bottom: 10px; }
+  .plat__phones { display: grid; grid-template-columns: repeat(3, 1fr); gap: clamp(24px, 4vw, 48px); margin-top: clamp(40px, 6vw, 80px); }
+  .plat__phones .phone { max-width: 280px; }
+  .plat__ai { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); gap: clamp(24px, 4vw, 64px); align-items: center; margin-top: clamp(40px, 6vw, 80px); padding: clamp(28px, 4vw, 56px); background: var(--teal-50); border-radius: 24px; border: 1px solid var(--teal-100); }
+  .plat__ai-phone { max-width: 260px; justify-self: center; }
+  .plat__ai-copy { display: grid; gap: 14px; }
+  @media (max-width: 980px) {
+    .plat__head, .plat__stage, .plat__ai { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 700px) {
+    .plat__two { grid-template-columns: 1fr; }
+    .plat__phones { grid-template-columns: 1fr; }
+    .plat__phones article { grid-template-columns: minmax(0, 1fr); }
+  }
+</style>

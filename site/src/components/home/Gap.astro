@@ -1,0 +1,43 @@
+---
+import { rich, type Dict } from '../../i18n'
+interface Props { t: Dict }
+const { t } = Astro.props
+---
+<section class="gap section">
+  <div class="container gap__grid">
+    <div class="gap__copy">
+      <p class="eyebrow" data-reveal>{t.gap.eyebrow}</p>
+      <h2 class="title" data-reveal style="--i:1" set:html={rich(t.gap.title)} />
+      <p class="lead gap__lead" data-reveal style="--i:2">{t.gap.body1}</p>
+      <p class="body gap__body" data-reveal style="--i:3">{t.gap.body2}</p>
+      <blockquote class="gap__quote" data-reveal style="--i:4">
+        <p>{t.gap.quote}</p>
+        <footer>{t.gap.quoteSource}<a class="fn" href={`#src-${t.gap.quoteFn}`}>{t.gap.quoteFn}</a></footer>
+      </blockquote>
+    </div>
+    <ul class="gap__stats">
+      {t.gap.stats.map((s, i) => (
+        <li data-reveal style={`--i:${i + 1}`}>
+          <span class="gap__value num">{s.value}</span>
+          <p class="gap__text small" set:html={rich(`${s.text} [${s.fn}]`)} />
+        </li>
+      ))}
+    </ul>
+  </div>
+</section>
+<style>
+  .gap { background: var(--paper-2); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+  .gap__grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: clamp(36px, 6vw, 96px); align-items: start; }
+  .gap__copy .title { margin-top: 20px; }
+  .gap__lead { margin-top: 26px; }
+  .gap__body { margin-top: 16px; }
+  .gap__quote { margin: 36px 0 0; padding: 4px 0 4px 22px; border-left: 3px solid var(--amber); font-family: var(--font-serif); font-style: italic; font-size: 20px; line-height: 1.45; color: var(--ink-2); font-variation-settings: 'opsz' 18; }
+  .gap__quote footer { margin-top: 10px; font-family: var(--font-sans); font-style: normal; font-size: 13.5px; color: var(--ink-3); }
+  .gap__stats { display: grid; grid-template-columns: 1fr 1fr; margin-top: 8px; }
+  .gap__stats li { padding: 28px 28px 32px 0; border-top: 1px solid var(--line-strong); display: grid; gap: 14px; align-content: start; }
+  .gap__stats li:nth-child(2n) { padding-left: 28px; border-left: 1px solid var(--line-strong); padding-right: 0; }
+  .gap__value { font-size: clamp(46px, 5vw, 74px); line-height: .95; color: var(--teal-800); }
+  .gap__text { color: var(--ink-2); max-width: 22em; }
+  @media (max-width: 980px) { .gap__grid { grid-template-columns: 1fr; } .gap__stats { margin-top: 12px; } }
+  @media (max-width: 480px) { .gap__stats { grid-template-columns: 1fr; } .gap__stats li:nth-child(2n) { padding-left: 0; border-left: 0; } .gap__stats li { padding-right: 0; } }
+</style>

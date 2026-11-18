@@ -1,0 +1,50 @@
+---
+import { rich, type Dict } from '../../i18n'
+interface Props { t: Dict }
+const { t } = Astro.props
+---
+<section class="cmp section" id="clinic">
+  <div class="container">
+    <header class="cmp__head">
+      <p class="eyebrow" data-reveal>{t.compare.eyebrow}</p>
+      <h2 class="title" data-reveal style="--i:1" set:html={rich(t.compare.title)} />
+      <p class="lead" data-reveal style="--i:2">{t.compare.lead}</p>
+    </header>
+    <div class="cmp__table" role="table" data-reveal>
+      <div class="cmp__row cmp__row--head" role="row">
+        <span role="columnheader" class="cmp__label"></span>
+        <span role="columnheader" class="cmp__a">{t.compare.colA}</span>
+        <span role="columnheader" class="cmp__b">{t.compare.colB}</span>
+      </div>
+      {t.compare.rows.map(r => (
+        <div class="cmp__row" role="row">
+          <span class="cmp__label" role="rowheader">{r.label}</span>
+          <span class="cmp__a" role="cell" data-col={t.compare.colA}>{r.a}</span>
+          <span class="cmp__b" role="cell" data-col={t.compare.colB}>{r.b}</span>
+        </div>
+      ))}
+    </div>
+  </div>
+</section>
+<style>
+  .cmp__head { max-width: 760px; }
+  .cmp__head .title { margin-top: 20px; }
+  .cmp__head .lead { margin-top: 22px; }
+  .cmp__table { margin-top: clamp(36px, 5vw, 60px); border-top: 1px solid var(--line-strong); }
+  .cmp__row { display: grid; grid-template-columns: 1.1fr 1fr 1.25fr; border-bottom: 1px solid var(--line); }
+  .cmp__row > span { padding: 20px 22px 20px 0; font-size: 16px; line-height: 1.45; }
+  .cmp__label { font-weight: 560; color: var(--ink); }
+  .cmp__a { color: var(--ink-3); }
+  .cmp__b { background: var(--teal-50); color: var(--teal-900); padding-left: 22px !important; border-left: 1px solid var(--teal-100); font-weight: 520; }
+  .cmp__row--head > span { padding-top: 16px; padding-bottom: 16px; font-size: 12.5px; font-weight: 620; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-3); }
+  .cmp__row--head .cmp__b { color: var(--teal-800); }
+  @media (max-width: 720px) {
+    .cmp__row { grid-template-columns: 1fr; padding: 18px 0; }
+    .cmp__row--head { display: none; }
+    .cmp__row > span { padding: 4px 0; }
+    .cmp__label { font-family: var(--font-serif); font-size: 20px; letter-spacing: -0.01em; padding-bottom: 8px !important; }
+    .cmp__a::before, .cmp__b::before { content: attr(data-col); display: block; font-size: 11.5px; font-weight: 620; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-3); margin-bottom: 2px; }
+    .cmp__b { background: none; border-left: 0; padding-left: 0 !important; margin-top: 8px; }
+    .cmp__b::before { color: var(--teal-700); }
+  }
+</style>

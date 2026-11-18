@@ -1,0 +1,68 @@
+---
+import '../styles/global.css'
+import Nav from '../components/Nav.astro'
+import Footer from '../components/Footer.astro'
+import { dicts, locales, pathFor, type Locale, type PageKey } from '../i18n'
+import { ORG_NAME } from '../config'
+interface Props { locale: Locale; page: PageKey; title: string; description: string }
+const { locale, page, title, description } = Astro.props
+const t = dicts[locale]
+const site = Astro.site ?? new URL('https://shifora.uz')
+const canonical = new URL(pathFor(locale, page), site).href
+const og = new URL(`/og-${locale}.png`, site).href
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    { '@type': 'Organization', name: ORG_NAME, url: site.href, logo: new URL('/favicon.svg', site).href },
+    { '@type': 'SoftwareApplication', name: 'Shifora', applicationCategory: 'MedicalApplication', operatingSystem: 'Web', description, url: canonical, inLanguage: t.htmlLang },
+  ],
+}
+---
+<!doctype html>
+<html lang={t.htmlLang}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonical} />
+    {locales.map(l => <link rel="alternate" hreflang={l} href={new URL(pathFor(l, page), site).href} />)}
+    <link rel="alternate" hreflang="x-default" href={new URL(pathFor('uz', page), site).href} />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <meta name="theme-color" content="#f6f4ee" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Shifora" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:image" content={og} />
+    <meta property="og:locale" content={locale === 'uz' ? 'uz_UZ' : locale === 'ru' ? 'ru_RU' : 'en_GB'} />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={og} />
+    <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
+  </head>
+  <body>
+    <a class="skip" href="#main">{locale === 'uz' ? 'Asosiy qismga o‘tish' : locale === 'ru' ? 'К содержимому' : 'Skip to content'}</a>
+    <Nav locale={locale} page={page} />
+    <main id="main"><slot /></main>
+    <Footer locale={locale} page={page} />
+    <script>
+      const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+      const targets = document.querySelectorAll('[data-reveal]')
+      if (reduce || !('IntersectionObserver' in window)) {
+        targets.forEach(el => el.classList.add('is-in'))
+      } else {
+        const io = new IntersectionObserver(entries => {
+          for (const e of entries) if (e.isIntersecting) { e.target.classList.add('is-in'); io.unobserve(e.target) }
+        }, { rootMargin: '0px 0px -8% 0px', threshold: 0.08 })
+        targets.forEach(el => io.observe(el))
+      }
+    </script>
+  </body>
+</html>
+<style is:global>
+  .skip { position: absolute; left: 16px; top: -60px; z-index: 100; padding: 10px 14px; background: var(--ink); color: var(--paper); border-radius: 8px; transition: top .2s; }
+  .skip:focus { top: 12px; }
+</style>

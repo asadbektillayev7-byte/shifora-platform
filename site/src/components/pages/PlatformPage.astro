@@ -1,0 +1,63 @@
+---
+import { Image } from 'astro:assets'
+import PageHead from '../PageHead.astro'
+import Cta from '../home/Cta.astro'
+import { screen } from '../../lib/screens'
+import type { Dict, Locale } from '../../i18n'
+interface Props { t: Dict; locale: Locale }
+const { t } = Astro.props
+const p = t.pages.platform
+---
+<PageHead eyebrow={p.eyebrow} title={p.h1} lead={p.lead} />
+{p.groups.map(g => (
+  <section class:list={['pg', 'section', `pg--${g.key}`]} id={g.key}>
+    <div class="container">
+      <header class="pg__head">
+        <p class="eyebrow" data-reveal>{g.eyebrow}</p>
+        <h2 class="title" data-reveal style="--i:1">{g.title}</h2>
+        <p class="lead" data-reveal style="--i:2">{g.lead}</p>
+      </header>
+      <div class:list={['pg__grid', g.key === 'staff' ? 'pg__grid--desk' : 'pg__grid--phone']}>
+        {g.screens.map((s, i) => (
+          <article data-reveal style={`--i:${(i % 3) + 1}`}>
+            {g.key === 'staff'
+              ? <figure class="frame frame--bar"><Image src={screen(s.key)} alt={s.title} widths={[640, 960, 1280]} sizes="(max-width: 900px) 92vw, 46vw" /></figure>
+              : <figure class="phone"><Image src={screen(s.key)} alt={s.title} widths={[320, 480, 640]} sizes="(max-width: 700px) 70vw, 260px" /></figure>}
+            <h3 class="h4">{s.title}</h3>
+            <p class="body small">{s.text}</p>
+          </article>
+        ))}
+      </div>
+    </div>
+  </section>
+))}
+<section class="tech section--tight">
+  <div class="container tech__grid">
+    <h2 class="title-sm" data-reveal>{p.techTitle}</h2>
+    <dl class="tech__list" data-reveal style="--i:1">
+      {p.tech.map(row => <div><dt>{row.k}</dt><dd>{row.v}</dd></div>)}
+    </dl>
+  </div>
+</section>
+<Cta t={t} />
+<style>
+  .pg + .pg { border-top: 1px solid var(--line); }
+  .pg--patient { background: var(--paper-2); }
+  .pg__head { max-width: 760px; }
+  .pg__head .title { margin-top: 20px; }
+  .pg__head .lead { margin-top: 22px; }
+  .pg__grid { display: grid; gap: clamp(28px, 4vw, 56px) clamp(24px, 3vw, 40px); margin-top: clamp(36px, 5vw, 64px); }
+  .pg__grid--desk { grid-template-columns: 1fr 1fr; }
+  .pg__grid--phone { grid-template-columns: repeat(3, 1fr); }
+  .pg__grid article { display: grid; gap: 10px; align-content: start; }
+  .pg__grid .frame, .pg__grid .phone { margin-bottom: 10px; }
+  .pg__grid .phone { max-width: 260px; }
+  .tech { border-top: 1px solid var(--line); }
+  .tech__grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); gap: clamp(24px, 4vw, 64px); align-items: start; }
+  .tech__list { display: grid; border-top: 1px solid var(--line-strong); }
+  .tech__list div { display: grid; grid-template-columns: 160px 1fr; gap: 16px; padding: 16px 0; border-bottom: 1px solid var(--line); }
+  .tech__list dt { font-weight: 580; }
+  .tech__list dd { margin: 0; color: var(--ink-2); }
+  @media (max-width: 900px) { .pg__grid--desk { grid-template-columns: 1fr; } .tech__grid { grid-template-columns: 1fr; } }
+  @media (max-width: 700px) { .pg__grid--phone { grid-template-columns: 1fr; } .tech__list div { grid-template-columns: 1fr; gap: 4px; } }
+</style>

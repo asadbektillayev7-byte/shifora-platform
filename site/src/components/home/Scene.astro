@@ -1,0 +1,113 @@
+---
+import type { Dict } from '../../i18n'
+interface Props { i: number; t: Dict }
+const { i, t } = Astro.props
+const s = t.story.scene
+---
+{i === 0 && (
+  <div class="sc sc--paper">
+    <div class="sc__head"><span class="sc__title">{s.discharge.title}</span><span class="sc__stamp">{s.discharge.stamp}</span></div>
+    <p class="sc__patient">{s.discharge.patient}</p>
+    <ul class="sc__lines">{s.discharge.lines.map(l => <li>{l}</li>)}</ul>
+    <div class="sc__foot"><span class="pill pill--ok"><i></i>{s.discharge.status}</span></div>
+  </div>
+)}
+{i === 1 && (
+  <div class="sc sc--silence">
+    <div class="sc__head"><span class="sc__title">{s.silence.title}</span></div>
+    <ul class="sc__days">{s.silence.days.map(d => <li><span class="sc__dayname">{d}</span><span class="sc__bar"></span><span class="sc__empty">{s.silence.empty}</span></li>)}</ul>
+    <div class="sc__count"><span class="sc__countnum num">{s.silence.countdown}</span><span class="sc__countlabel">{s.silence.countdownLabel}</span></div>
+  </div>
+)}
+{i === 2 && (
+  <div class="sc sc--alert">
+    <div class="sc__alert">
+      <div class="sc__alert-top"><strong>{s.alert.name}</strong><span class="sc__time">{s.alert.time}</span></div>
+      <p class="sc__alert-text">{s.alert.text}</p>
+      <span class="pill pill--urgent"><i></i>{s.alert.severity}</span>
+    </div>
+    <svg class="sc__chart" viewBox="0 0 320 120" aria-hidden="true" focusable="false">
+      <line x1="12" y1="80" x2="308" y2="80" class="sc__threshold" />
+      <text x="308" y="76" text-anchor="end" class="sc__chart-label">70</text>
+      <path class="sc__path" d="M20,50 L65,46 L110,54 L155,44 L200,100 L245,58 L290,48" />
+      <circle class="sc__dip" cx="200" cy="100" r="5" />
+      <text x="200" y="117" text-anchor="middle" class="sc__chart-label sc__chart-label--dip">61</text>
+    </svg>
+    <ol class="sc__trail">
+      <li><span class="sc__trail-dot"></span><span>{s.alert.handled}</span></li>
+      <li><span class="sc__trail-dot"></span><span>{s.alert.call}</span></li>
+      <li><span class="sc__trail-dot sc__trail-dot--ok"></span><span>{s.alert.plan}</span></li>
+    </ol>
+  </div>
+)}
+{i === 3 && (
+  <div class="sc sc--report">
+    <div class="sc__head"><span class="sc__title">{s.report.title}</span></div>
+    <div class="sc__adh">
+      <span class="sc__adh-label">{s.report.adherence}</span>
+      <span class="sc__adh-value num">{s.report.adherenceValue}</span>
+      <span class="sc__adh-bar"><i style="--w:92%"></i></span>
+    </div>
+    <dl class="sc__metrics">
+      <div><dt>{s.report.measurements}</dt><dd class="num">{s.report.measurementsValue}</dd></div>
+      <div><dt>{s.report.alerts}</dt><dd>{s.report.alertsValue}</dd></div>
+      <div><dt>{s.report.readmission}</dt><dd>{s.report.readmissionValue}</dd></div>
+    </dl>
+    <div class="sc__care"><span class="sc__avatar">SK</span><span>{s.report.caregiver}</span></div>
+  </div>
+)}
+<style>
+  .sc { width: 100%; max-width: 420px; margin: 0 auto; background: var(--white); border: 1px solid var(--line); border-radius: 16px; padding: 22px 24px; font-size: 14.5px; line-height: 1.45; color: var(--ink); box-shadow: 0 30px 60px -36px rgba(21, 48, 42, .35); }
+  .sc__head { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+  .sc__title { font-weight: 600; letter-spacing: -0.01em; }
+  .sc__stamp { font-family: var(--font-serif); font-style: italic; color: var(--amber-ink); border: 1px solid var(--amber-deep); padding: 2px 10px; border-radius: 999px; font-size: 13px; transform: rotate(-4deg); }
+  .sc__patient { margin-top: 6px; color: var(--ink-3); font-size: 13px; }
+  .sc__lines { margin-top: 16px; display: grid; gap: 8px; }
+  .sc__lines li { position: relative; padding-left: 16px; }
+  .sc__lines li::before { content: ''; position: absolute; left: 0; top: 9px; width: 6px; height: 6px; background: var(--teal-700); border-radius: 1px; }
+  .sc__foot { margin-top: 18px; padding-top: 14px; border-top: 1px dashed var(--line-strong); display: flex; justify-content: flex-end; }
+  .pill { display: inline-flex; align-items: center; gap: 7px; padding: 5px 11px; border-radius: 999px; font-size: 13px; font-weight: 560; }
+  .pill i { width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+  .pill--ok { background: var(--teal-50); color: var(--teal-700); }
+  .pill--urgent { background: var(--red-soft); color: var(--red); }
+
+  .sc--silence { background: var(--paper-2); }
+  .sc__days { margin-top: 16px; display: grid; gap: 9px; }
+  .sc__days li { display: grid; grid-template-columns: 56px 1fr auto; align-items: center; gap: 12px; color: var(--ink-3); font-size: 13px; }
+  .sc__bar { height: 8px; border-radius: 999px; border: 1px dashed var(--line-strong); }
+  .sc__count { margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--line); display: flex; align-items: baseline; gap: 10px; }
+  .sc__countnum { font-size: 34px; color: var(--ink-2); }
+  .sc__countlabel { color: var(--ink-3); font-size: 13px; }
+
+  .sc__alert { border-left: 3px solid var(--red); padding-left: 14px; }
+  .sc__alert-top { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; }
+  .sc__time { color: var(--ink-3); font-size: 12.5px; white-space: nowrap; }
+  .sc__alert-text { margin: 4px 0 10px; color: var(--ink-2); }
+  .sc__chart { width: 100%; height: auto; margin-top: 16px; }
+  .sc__threshold { stroke: var(--line-strong); stroke-dasharray: 4 5; stroke-width: 1; }
+  .sc__chart-label { font-size: 11px; fill: var(--ink-3); font-family: var(--font-sans); }
+  .sc__chart-label--dip { fill: var(--red); font-weight: 600; }
+  .sc__path { fill: none; stroke: var(--teal-700); stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 460; stroke-dashoffset: 460; transition: stroke-dashoffset 1.6s var(--ease) .2s; }
+  .sc__dip { fill: var(--red); opacity: 0; transition: opacity .4s var(--ease) 1.3s; }
+  :global(.is-active) .sc__path, :global(.is-in) .sc__path { stroke-dashoffset: 0; }
+  :global(.is-active) .sc__dip, :global(.is-in) .sc__dip { opacity: 1; }
+  @media (prefers-reduced-motion: reduce) { .sc__path { stroke-dashoffset: 0; transition: none; } .sc__dip { opacity: 1; transition: none; } }
+  .sc__trail { margin-top: 14px; display: grid; gap: 8px; font-size: 13px; color: var(--ink-2); }
+  .sc__trail li { display: flex; align-items: center; gap: 10px; }
+  .sc__trail-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--amber-deep); flex-shrink: 0; }
+  .sc__trail-dot--ok { background: var(--teal-700); }
+
+  .sc__adh { margin-top: 16px; display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; align-items: baseline; }
+  .sc__adh-label { color: var(--ink-3); font-size: 13px; }
+  .sc__adh-value { font-size: 34px; color: var(--teal-800); }
+  .sc__adh-bar { grid-column: 1 / -1; height: 8px; border-radius: 999px; background: var(--paper-2); overflow: hidden; }
+  .sc__adh-bar i { display: block; height: 100%; width: 0; background: var(--teal-700); border-radius: 999px; transition: width 1.2s var(--ease) .2s; }
+  :global(.is-active) .sc__adh-bar i, :global(.is-in) .sc__adh-bar i { width: var(--w); }
+  @media (prefers-reduced-motion: reduce) { .sc__adh-bar i { width: var(--w); transition: none; } }
+  .sc__metrics { margin-top: 18px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .sc__metrics div { border-top: 1px solid var(--line); padding-top: 10px; }
+  .sc__metrics dt { font-size: 12px; color: var(--ink-3); }
+  .sc__metrics dd { margin: 2px 0 0; font-weight: 600; font-size: 15px; }
+  .sc__care { margin-top: 18px; display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--ink-2); background: var(--amber-soft); padding: 10px 12px; border-radius: 10px; }
+  .sc__avatar { width: 28px; height: 28px; border-radius: 50%; display: inline-grid; place-items: center; background: var(--amber); color: var(--teal-900); font-size: 11px; font-weight: 700; }
+</style>

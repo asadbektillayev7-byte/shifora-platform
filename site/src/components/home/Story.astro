@@ -1,0 +1,85 @@
+---
+import Scene from './Scene.astro'
+import { rich, type Dict } from '../../i18n'
+interface Props { t: Dict }
+const { t } = Astro.props
+const idx = [0, 1, 2, 3]
+---
+<section class="story section" id="story">
+  <div class="container">
+    <header class="story__head">
+      <p class="eyebrow" data-reveal>{t.story.eyebrow}</p>
+      <h2 class="title" data-reveal style="--i:1" set:html={rich(t.story.title)} />
+      <p class="body story__intro" data-reveal style="--i:2">{t.story.intro}</p>
+    </header>
+    <div class="story__layout" data-story>
+      <ol class="story__chapters">
+        {t.story.chapters.map((c, i) => (
+          <li class="story__chapter" data-chapter={i}>
+            <div class="story__meta"><span class="story__day num">{c.day}</span><span class="story__name eyebrow">{c.name}</span></div>
+            <p class="story__text">{c.text}</p>
+            <div class="story__inline" data-reveal><Scene i={i} t={t} /></div>
+          </li>
+        ))}
+      </ol>
+      <div class="story__stage" aria-hidden="true">
+        <div class="story__scenes">
+          {idx.map(i => <div class="story__scene" data-scene={i}><Scene i={i} t={t} /></div>)}
+        </div>
+        <ol class="story__dots">{idx.map(i => <li data-dot={i}></li>)}</ol>
+      </div>
+    </div>
+    <p class="story__outro title-sm" data-reveal>{t.story.outro}</p>
+  </div>
+</section>
+<style>
+  .story { background: var(--paper); }
+  .story__head { max-width: 720px; }
+  .story__head .title { margin-top: 20px; }
+  .story__intro { margin-top: 18px; color: var(--ink-3); }
+  .story__layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: clamp(32px, 6vw, 96px); margin-top: clamp(40px, 6vw, 80px); align-items: start; }
+  .story__chapters { display: grid; }
+  .story__chapter { min-height: 62vh; display: flex; flex-direction: column; justify-content: center; padding: 8vh 0; border-top: 1px solid var(--line); transition: opacity .5s var(--ease); }
+  .story__chapter:first-child { border-top: 0; padding-top: 2vh; }
+  .story__meta { display: flex; align-items: baseline; gap: 16px; }
+  .story__day { font-size: clamp(34px, 3.4vw, 46px); color: var(--teal-800); line-height: 1; }
+  .story__text { margin-top: 18px; font-size: clamp(17px, 1.4vw, 20px); line-height: 1.6; color: var(--ink-2); max-width: 32em; text-wrap: pretty; }
+  .story__inline { display: none; margin-top: 26px; }
+  .story__stage { position: sticky; top: 96px; height: min(72vh, 680px); border-radius: 24px; background: var(--paper-2); overflow: hidden; }
+  .story__scenes { position: absolute; inset: 0; }
+  .story__scene { position: absolute; inset: 0; display: grid; place-items: center; padding: 28px; opacity: 0; transform: translateY(26px) scale(.985); transition: opacity .6s var(--ease), transform .8s var(--ease); pointer-events: none; }
+  .story__scene.is-active { opacity: 1; transform: none; }
+  .story__dots { position: absolute; left: 24px; bottom: 22px; display: flex; gap: 8px; }
+  .story__dots li { width: 22px; height: 3px; border-radius: 999px; background: var(--line-strong); transition: background-color .4s var(--ease), width .4s var(--ease); }
+  .story__dots li.is-active { background: var(--teal-800); width: 38px; }
+  .story__outro { margin-top: clamp(40px, 6vw, 72px); max-width: 24em; color: var(--teal-800); }
+  @media (min-width: 901px) {
+    .story__chapter { opacity: .38; }
+    .story__chapter.is-active { opacity: 1; }
+  }
+  @media (max-width: 900px) {
+    .story__layout { grid-template-columns: 1fr; }
+    .story__stage { display: none; }
+    .story__chapter { min-height: 0; padding: 36px 0; }
+    .story__inline { display: block; }
+  }
+  @media (prefers-reduced-motion: reduce) { .story__scene { transition: none; } .story__chapter { transition: none; } }
+</style>
+<script>
+  for (const root of document.querySelectorAll<HTMLElement>('[data-story]')) {
+    const chapters = Array.from(root.querySelectorAll<HTMLElement>('[data-chapter]'))
+    const scenes = Array.from(root.querySelectorAll<HTMLElement>('[data-scene]'))
+    const dots = Array.from(root.querySelectorAll<HTMLElement>('[data-dot]'))
+    const set = (i: number) => {
+      chapters.forEach((c, j) => c.classList.toggle('is-active', j === i))
+      scenes.forEach((s, j) => s.classList.toggle('is-active', j === i))
+      dots.forEach((d, j) => d.classList.toggle('is-active', j === i))
+    }
+    set(0)
+    if (!('IntersectionObserver' in window)) continue
+    const io = new IntersectionObserver(entries => {
+      for (const e of entries) if (e.isIntersecting) set(Number((e.target as HTMLElement).dataset.chapter))
+    }, { rootMargin: '-42% 0px -42% 0px', threshold: 0 })
+    chapters.forEach(c => io.observe(c))
+  }
+</script>

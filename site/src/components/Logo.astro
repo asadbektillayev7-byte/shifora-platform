@@ -1,0 +1,20 @@
+---
+interface Props { compact?: boolean; light?: boolean }
+const { compact = false, light = false } = Astro.props
+---
+<span class:list={['logo', { 'logo--compact': compact, 'logo--light': light }]}>
+  <svg class="logo__mark" viewBox="0 0 40 40" aria-hidden="true" focusable="false">
+    <rect x="15" y="5" width="10" height="30" rx="4" fill="var(--teal-700)" />
+    <rect x="5" y="15" width="30" height="10" rx="4" fill="var(--amber)" />
+  </svg>
+  <span class="logo__word">shifora<span class="logo__dot">.</span></span>
+</span>
+<style>
+  .logo { display: inline-flex; align-items: center; gap: 9px; color: var(--ink); font-weight: 600; font-size: 27px; letter-spacing: -0.045em; line-height: 1; }
+  .logo--light { color: var(--paper); }
+  .logo--compact { font-size: 23px; gap: 7px; }
+  .logo__mark { width: 30px; height: 30px; flex-shrink: 0; }
+  .logo--compact .logo__mark { width: 26px; height: 26px; }
+  .logo__dot { color: var(--teal-700); }
+  .logo--light .logo__dot { color: var(--amber); }
+</style>

@@ -1,0 +1,29 @@
+---
+import Hero from '../home/Hero.astro'
+import Facts from '../home/Facts.astro'
+import Story from '../home/Story.astro'
+import Gap from '../home/Gap.astro'
+import Flow from '../home/Flow.astro'
+import Platform from '../home/Platform.astro'
+import Safety from '../home/Safety.astro'
+import Compare from '../home/Compare.astro'
+import Capacity from '../home/Capacity.astro'
+import Pilot from '../home/Pilot.astro'
+import Faq from '../home/Faq.astro'
+import Cta from '../home/Cta.astro'
+import type { Dict, Locale } from '../../i18n'
+interface Props { t: Dict; locale: Locale }
+const { t, locale } = Astro.props
+---
+<Hero t={t} />
+<Facts t={t} />
+<Story t={t} />
+<Gap t={t} />
+<Flow t={t} />
+<Platform t={t} locale={locale} />
+<Safety t={t} locale={locale} />
+<Compare t={t} />
+<Capacity t={t} />
+<Pilot t={t} locale={locale} />
+<Faq t={t} />
+<Cta t={t} />

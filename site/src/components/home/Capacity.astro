@@ -1,0 +1,53 @@
+---
+import { rich, type Dict } from '../../i18n'
+interface Props { t: Dict }
+const { t } = Astro.props
+const total = t.capacity.minutes.reduce((a, m) => a + m.value, 0)
+---
+<section class="cap section--tight">
+  <div class="container cap__grid">
+    <div class="cap__copy">
+      <p class="eyebrow" data-reveal>{t.capacity.eyebrow}</p>
+      <h2 class="title" data-reveal style="--i:1" set:html={rich(t.capacity.title)} />
+      <p class="lead" data-reveal style="--i:2">{t.capacity.lead}</p>
+      <p class="body small cap__note" data-reveal style="--i:3">{t.capacity.note}</p>
+      <p class="small cap__method" data-reveal style="--i:4">{t.capacity.method}</p>
+    </div>
+    <div class="cap__viz" data-reveal style="--i:2">
+      <div class="cap__bar" aria-hidden="true">
+        {t.capacity.minutes.map((m, i) => <span data-i={i} style={`--w:${(m.value / total) * 100}%`}></span>)}
+      </div>
+      <ul class="cap__legend">
+        {t.capacity.minutes.map((m, i) => (
+          <li><i data-i={i}></i><span class="cap__legend-label">{m.label}</span><b class="num">{m.value}</b><span class="cap__unit">{t.capacity.unit}</span></li>
+        ))}
+      </ul>
+      <p class="cap__total">{t.capacity.total}</p>
+    </div>
+  </div>
+</section>
+<style>
+  .cap { border-top: 1px solid var(--line); }
+  .cap__grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: clamp(36px, 6vw, 96px); align-items: center; }
+  .cap__copy .title { margin-top: 20px; }
+  .cap__copy .lead { margin-top: 22px; }
+  .cap__note { margin-top: 18px; }
+  .cap__method { margin-top: 14px; color: var(--ink-3); }
+  .cap__bar { display: flex; height: 54px; border-radius: 12px; overflow: hidden; background: var(--paper-2); }
+  .cap__bar span { display: block; width: 0; height: 100%; transition: width 1.2s var(--ease); }
+  .is-in .cap__bar span { width: var(--w); }
+  @media (prefers-reduced-motion: reduce) { .cap__bar span { width: var(--w); transition: none; } }
+  [data-i="0"] { background: var(--teal-900); }
+  [data-i="1"] { background: var(--teal-700); }
+  [data-i="2"] { background: var(--teal-600); }
+  [data-i="3"] { background: var(--teal-200); }
+  [data-i="4"] { background: var(--teal-100); }
+  [data-i="5"] { background: var(--amber); }
+  .cap__legend { margin-top: 24px; display: grid; gap: 10px; }
+  .cap__legend li { display: grid; grid-template-columns: 14px 1fr auto auto; align-items: baseline; gap: 12px; font-size: 15px; color: var(--ink-2); padding-bottom: 10px; border-bottom: 1px solid var(--line); }
+  .cap__legend i { width: 12px; height: 12px; border-radius: 3px; display: inline-block; align-self: center; }
+  .cap__legend b { font-size: 20px; color: var(--ink); }
+  .cap__unit { font-size: 13px; color: var(--ink-3); }
+  .cap__total { margin-top: 16px; font-family: var(--font-serif); font-size: 22px; color: var(--teal-800); letter-spacing: -0.01em; }
+  @media (max-width: 900px) { .cap__grid { grid-template-columns: 1fr; } }
+</style>

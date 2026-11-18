@@ -1,0 +1,10 @@
+---
+interface Props { class?: string; dir?: 'right' | 'external' | 'down' }
+const { class: cls = '', dir = 'right' } = Astro.props
+---
+{dir === 'right' && <svg class={`arrow ${cls}`} viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M2 8h11M9 3.5 13.5 8 9 12.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>}
+{dir === 'external' && <svg class={`arrow ${cls}`} viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M4 12 12 4M6 4h6v6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>}
+{dir === 'down' && <svg class={`arrow ${cls}`} viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M8 2v11M3.5 9 8 13.5 12.5 9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>}
+<style>
+  .arrow { width: 1em; height: 1em; flex-shrink: 0; }
+</style>

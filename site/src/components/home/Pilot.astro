@@ -1,0 +1,58 @@
+---
+import Arrow from '../Arrow.astro'
+import { pathFor, rich, type Dict, type Locale } from '../../i18n'
+interface Props { t: Dict; locale: Locale; compact?: boolean }
+const { t, locale, compact = false } = Astro.props
+---
+<section class="pilot section" id="pilot">
+  <div class="container">
+    {!compact && (
+      <header class="pilot__head">
+        <p class="eyebrow" data-reveal>{t.pilot.eyebrow}</p>
+        <h2 class="title" data-reveal style="--i:1" set:html={rich(t.pilot.title)} />
+        <p class="lead" data-reveal style="--i:2">{t.pilot.lead}</p>
+      </header>
+    )}
+    <ol class="pilot__steps">
+      {t.pilot.steps.map((s, i) => (
+        <li data-reveal style={`--i:${i + 1}`}>
+          <span class="pilot__when num">{s.when}</span>
+          <h3 class="h4">{s.title}</h3>
+          <p class="body small">{s.text}</p>
+        </li>
+      ))}
+    </ol>
+    <div class="pilot__foot" data-reveal>
+      <div class="pilot__includes">
+        <p class="eyebrow">{t.pilot.includesTitle}</p>
+        <ul>{t.pilot.includes.map(x => <li>{x}</li>)}</ul>
+      </div>
+      <div class="pilot__cta">
+        <p class="body">{t.pilot.pricing}</p>
+        <div class="pilot__actions">
+          <a class="btn btn--primary btn--lg" href="#demo">{t.pilot.cta}<Arrow /></a>
+          {!compact && <a class="link" href={pathFor(locale, 'pilot')}>{t.pilot.more}<Arrow /></a>}
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+<style>
+  .pilot { background: var(--paper-2); border-top: 1px solid var(--line); }
+  .pilot__head { max-width: 760px; }
+  .pilot__head .title { margin-top: 20px; }
+  .pilot__head .lead { margin-top: 22px; }
+  .pilot__steps { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 32px 28px; margin-top: clamp(40px, 6vw, 72px); border-top: 1px solid var(--line-strong); }
+  .pilot__steps li { position: relative; padding-top: 30px; display: grid; gap: 10px; align-content: start; }
+  .pilot__steps li::before { content: ''; position: absolute; top: -6px; left: 0; width: 11px; height: 11px; border-radius: 50%; background: var(--teal-800); }
+  .pilot__steps li:last-child::before { background: var(--amber-deep); }
+  .pilot__when { font-size: 30px; line-height: 1; color: var(--teal-700); }
+  .pilot__foot { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: clamp(28px, 5vw, 72px); margin-top: clamp(40px, 6vw, 72px); padding-top: 32px; border-top: 1px solid var(--line-strong); align-items: start; }
+  .pilot__includes ul { margin-top: 14px; display: grid; gap: 8px; }
+  .pilot__includes li { position: relative; padding-left: 18px; color: var(--ink-2); }
+  .pilot__includes li::before { content: ''; position: absolute; left: 0; top: 11px; width: 7px; height: 7px; background: var(--teal-700); border-radius: 2px; }
+  .pilot__cta { display: grid; gap: 20px; }
+  .pilot__actions { display: flex; flex-wrap: wrap; align-items: center; gap: 20px; }
+  @media (max-width: 900px) { .pilot__steps { grid-template-columns: 1fr 1fr; } .pilot__foot { grid-template-columns: 1fr; } }
+  @media (max-width: 520px) { .pilot__steps { grid-template-columns: 1fr; } }
+</style>

@@ -1,0 +1,107 @@
+---
+import Arrow from '../Arrow.astro'
+import { rich, type Dict } from '../../i18n'
+import { APP_URL, CONTACT_EMAIL, FORM_ENDPOINT, TELEGRAM } from '../../config'
+interface Props { t: Dict }
+const { t } = Astro.props
+const f = t.cta.form
+const labels = { name: f.name, clinic: f.clinic, role: f.role, phone: f.phone, city: f.city, message: f.message }
+const msgs = { subject: f.subject, sending: f.sending, success: f.success, error: f.error, mail: f.mail, submit: f.submit }
+---
+<section class="cta section" id="demo">
+  <div class="container">
+    <div class="cta__card dark" data-reveal>
+      <div class="cta__copy">
+        <p class="eyebrow">{t.cta.eyebrow}</p>
+        <h2 class="title" set:html={rich(t.cta.title)} />
+        <p class="lead">{t.cta.lead}</p>
+        <div class="cta__contacts">
+          <p class="eyebrow">{t.cta.contactTitle}</p>
+          <a class="cta__contact" href={`mailto:${CONTACT_EMAIL}`}><span class="cta__contact-label">{t.cta.emailLabel}</span><span>{CONTACT_EMAIL}</span></a>
+          {TELEGRAM && <a class="cta__contact" href={`https://t.me/${TELEGRAM}`} target="_blank" rel="noopener"><span class="cta__contact-label">{t.cta.telegramLabel}</span><span>@{TELEGRAM}</span></a>}
+        </div>
+        <div class="cta__demo">
+          <a class="link" href={APP_URL} target="_blank" rel="noopener">{t.cta.demoLink}<Arrow dir="external" /></a>
+          <p class="small cta__demo-note">{t.cta.demoNote}</p>
+        </div>
+      </div>
+      <form class="cta__form" data-demo-form novalidate>
+        <div class="field"><label for="f-name">{f.name}</label><input id="f-name" name="name" type="text" autocomplete="name" required /><span class="field__hint">{f.required}</span></div>
+        <div class="field"><label for="f-clinic">{f.clinic}</label><input id="f-clinic" name="clinic" type="text" autocomplete="organization" required /><span class="field__hint">{f.required}</span></div>
+        <div class="field"><label for="f-role">{f.role}</label><select id="f-role" name="role">{f.roles.map(r => <option value={r}>{r}</option>)}</select></div>
+        <div class="field"><label for="f-phone">{f.phone}</label><input id="f-phone" name="phone" type="tel" inputmode="tel" autocomplete="tel" required /><span class="field__hint">{f.required}</span></div>
+        <div class="field"><label for="f-city">{f.city}</label><input id="f-city" name="city" type="text" autocomplete="address-level2" /></div>
+        <div class="field field--full"><label for="f-message">{f.message}</label><textarea id="f-message" name="message" rows="3" placeholder={f.messagePlaceholder}></textarea></div>
+        <div class="field--full cta__submit">
+          <button class="btn btn--amber btn--lg" type="submit" data-submit>{f.submit}<Arrow /></button>
+          <p class="small cta__privacy">{f.privacy}</p>
+        </div>
+        <p class="cta__status field--full" data-status hidden role="status"></p>
+      </form>
+    </div>
+  </div>
+</section>
+<script define:vars={{ endpoint: FORM_ENDPOINT, email: CONTACT_EMAIL, labels, msgs }}>
+  const form = document.querySelector('[data-demo-form]')
+  if (form) {
+    const status = form.querySelector('[data-status]')
+    const btn = form.querySelector('[data-submit]')
+    const btnHtml = btn.innerHTML
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault()
+      let ok = true
+      for (const el of form.querySelectorAll('[required]')) {
+        const bad = !el.value.trim()
+        el.closest('.field')?.classList.toggle('is-invalid', bad)
+        if (bad) ok = false
+      }
+      if (!ok) { form.querySelector('.is-invalid input')?.focus(); return }
+      const data = Object.fromEntries(new FormData(form).entries())
+      const subject = `${msgs.subject}: ${data.clinic}`
+      const body = Object.entries(data).filter(([, v]) => String(v).trim()).map(([k, v]) => `${labels[k] ?? k}: ${v}`).join('\n')
+      status.hidden = true
+      if (endpoint) {
+        try {
+          btn.disabled = true; btn.textContent = msgs.sending
+          const res = await fetch(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' }, body: JSON.stringify({ ...data, subject, _subject: subject }) })
+          if (!res.ok) throw new Error(String(res.status))
+          status.textContent = msgs.success; status.hidden = false; form.reset()
+        } catch {
+          status.textContent = `${msgs.error} ${email}`; status.hidden = false
+        } finally { btn.disabled = false; btn.innerHTML = btnHtml }
+      } else {
+        window.location.href = `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
+        status.textContent = msgs.mail; status.hidden = false
+      }
+    })
+    for (const el of form.querySelectorAll('[required]')) el.addEventListener('input', () => el.closest('.field')?.classList.remove('is-invalid'))
+  }
+</script>
+<style>
+  .cta__card { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: clamp(32px, 5vw, 72px); padding: clamp(28px, 5vw, 64px); border-radius: 28px; }
+  .cta__copy { display: grid; align-content: start; gap: 20px; }
+  .cta__copy .title { margin-top: 0; }
+  .cta__contacts { display: grid; gap: 10px; margin-top: 12px; padding-top: 24px; border-top: 1px solid var(--line-dark); }
+  .cta__contact { display: grid; grid-template-columns: 90px 1fr; gap: 12px; font-size: 16px; color: var(--paper); }
+  .cta__contact:hover span:last-child { text-decoration: underline; text-underline-offset: 4px; }
+  .cta__contact-label { color: var(--teal-200); font-size: 13px; letter-spacing: .08em; text-transform: uppercase; font-weight: 600; align-self: center; }
+  .cta__demo { margin-top: 8px; display: grid; gap: 6px; justify-items: start; }
+  .cta__demo-note { color: rgba(246, 244, 238, 0.6); }
+  .cta__form { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; padding: clamp(20px, 3vw, 32px); background: var(--paper); color: var(--ink); border-radius: 18px; align-content: start; }
+  .field { display: grid; gap: 6px; }
+  .field--full { grid-column: 1 / -1; }
+  .field label { font-size: 13px; font-weight: 580; color: var(--ink-2); }
+  .field input, .field select, .field textarea { width: 100%; min-height: 48px; padding: 10px 14px; background: var(--white); border: 1px solid var(--line-strong); border-radius: 10px; transition: border-color .2s var(--ease), box-shadow .2s var(--ease); }
+  .field textarea { resize: vertical; min-height: 92px; }
+  .field input:focus, .field select:focus, .field textarea:focus { outline: none; border-color: var(--teal-700); box-shadow: 0 0 0 3px rgba(23, 100, 91, 0.15); }
+  .field select { appearance: none; background-image: linear-gradient(45deg, transparent 50%, var(--ink-3) 50%), linear-gradient(135deg, var(--ink-3) 50%, transparent 50%); background-position: calc(100% - 20px) 50%, calc(100% - 14px) 50%; background-size: 6px 6px; background-repeat: no-repeat; padding-right: 36px; }
+  .field__hint { display: none; font-size: 12.5px; color: var(--red); }
+  .field.is-invalid input { border-color: var(--red); }
+  .field.is-invalid .field__hint { display: block; }
+  .cta__submit { display: grid; gap: 12px; justify-items: start; margin-top: 6px; }
+  .cta__submit .btn { width: 100%; }
+  .cta__privacy { color: var(--ink-3); }
+  .cta__status { padding: 12px 14px; border-radius: 10px; background: var(--teal-50); color: var(--teal-800); font-size: 14.5px; }
+  @media (max-width: 980px) { .cta__card { grid-template-columns: 1fr; } }
+  @media (max-width: 560px) { .cta__form { grid-template-columns: 1fr; } .cta__contact { grid-template-columns: 1fr; gap: 2px; } }
+</style>

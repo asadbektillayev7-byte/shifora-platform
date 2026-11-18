@@ -1,0 +1,82 @@
+---
+import Logo from './Logo.astro'
+import Arrow from './Arrow.astro'
+import { dicts, locales, pathFor, type Locale, type PageKey } from '../i18n'
+import { APP_URL, CONTACT_EMAIL, TELEGRAM } from '../config'
+interface Props { locale: Locale; page: PageKey }
+const { locale, page } = Astro.props
+const t = dicts[locale]
+const year = new Date().getFullYear()
+---
+<footer class="footer">
+  <div class="container">
+    <section class="sources" id="sources" aria-labelledby="sources-title">
+      <h2 class="eyebrow" id="sources-title">{t.footer.sourcesTitle}</h2>
+      <ol class="sources__list">
+        {t.sources.map(s => (
+          <li id={`src-${s.id}`}>
+            <span class="sources__n num">{s.id}</span>
+            <span class="sources__text">{s.text} <a class="sources__link" href={s.url} target="_blank" rel="noopener">{new URL(s.url).hostname.replace('www.', '')}<Arrow dir="external" /></a></span>
+          </li>
+        ))}
+      </ol>
+    </section>
+    <hr class="rule" />
+    <div class="footer__grid">
+      <div class="footer__brand">
+        <Logo />
+        <p class="footer__tagline">{t.footer.tagline}</p>
+      </div>
+      <div>
+        <h3 class="eyebrow">{t.footer.pages}</h3>
+        <ul class="footer__list">
+          <li><a href={pathFor(locale, 'home')}>{t.footer.home}</a></li>
+          <li><a href={pathFor(locale, 'platform')}>{t.nav.platform}</a></li>
+          <li><a href={pathFor(locale, 'safety')}>{t.nav.safety}</a></li>
+          <li><a href={pathFor(locale, 'pilot')}>{t.nav.pilot}</a></li>
+        </ul>
+      </div>
+      <div>
+        <h3 class="eyebrow">{t.footer.resources}</h3>
+        <ul class="footer__list">
+          <li><a href={pathFor(locale, 'safety')}>{t.safety.more}</a></li>
+          <li><a href="#sources">{t.footer.sourcesLink}</a></li>
+          <li><a href={APP_URL} target="_blank" rel="noopener">{t.nav.tryDemo}</a></li>
+        </ul>
+      </div>
+      <div>
+        <h3 class="eyebrow">{t.footer.contact}</h3>
+        <ul class="footer__list">
+          <li><a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a></li>
+          {TELEGRAM && <li><a href={`https://t.me/${TELEGRAM}`} target="_blank" rel="noopener">@{TELEGRAM}</a></li>}
+          <li><a href={`${pathFor(locale, 'home')}#demo`}>{t.nav.demo}</a></li>
+        </ul>
+      </div>
+    </div>
+    <p class="footer__disclaimer small">{t.footer.disclaimer}</p>
+    <div class="footer__bottom small">
+      <span>© {year} Shifora. {t.footer.rights}</span>
+      <span class="footer__langs">{locales.map(l => <a href={pathFor(l, page)} hreflang={l} lang={l} aria-current={l === locale ? 'true' : undefined}>{dicts[l].name}</a>)}</span>
+    </div>
+  </div>
+</footer>
+<style>
+  .footer { padding: 72px 0 40px; background: var(--paper-2); border-top: 1px solid var(--line); }
+  .sources { margin-bottom: 44px; }
+  .sources__list { margin-top: 18px; display: grid; gap: 12px; max-width: 980px; }
+  .sources__list li { display: grid; grid-template-columns: 28px 1fr; gap: 12px; font-size: 14px; line-height: 1.55; color: var(--ink-2); scroll-margin-top: 90px; }
+  .sources__n { font-size: 18px; color: var(--teal-700); line-height: 1.2; }
+  .sources__link { display: inline-flex; align-items: center; gap: 4px; color: var(--teal-700); font-weight: 540; white-space: nowrap; }
+  .sources__link :global(.arrow) { width: 12px; height: 12px; }
+  .footer__grid { display: grid; grid-template-columns: 1.6fr 1fr 1fr 1fr; gap: 32px; padding: 44px 0 36px; }
+  .footer__tagline { margin-top: 14px; color: var(--ink-2); font-family: var(--font-serif); font-size: 20px; letter-spacing: -0.01em; }
+  .footer__list { margin-top: 14px; display: grid; gap: 9px; }
+  .footer__list a { color: var(--ink-2); font-size: 15px; }
+  .footer__list a:hover { color: var(--ink); text-decoration: underline; text-underline-offset: 4px; }
+  .footer__disclaimer { color: var(--ink-3); max-width: 760px; border-top: 1px solid var(--line); padding-top: 24px; }
+  .footer__bottom { display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-top: 24px; color: var(--ink-3); }
+  .footer__langs { display: inline-flex; gap: 16px; }
+  .footer__langs a[aria-current] { color: var(--ink); font-weight: 560; }
+  @media (max-width: 860px) { .footer__grid { grid-template-columns: 1fr 1fr; } }
+  @media (max-width: 520px) { .footer__grid { grid-template-columns: 1fr; gap: 26px; } }
+</style>

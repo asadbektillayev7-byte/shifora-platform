@@ -1,0 +1,39 @@
+---
+import Arrow from '../Arrow.astro'
+import { pathFor, rich, type Dict, type Locale } from '../../i18n'
+interface Props { t: Dict; locale: Locale }
+const { t, locale } = Astro.props
+---
+<section class="safety section dark" id="safety">
+  <div class="container">
+    <header class="safety__head">
+      <p class="eyebrow" data-reveal>{t.safety.eyebrow}</p>
+      <h2 class="title" data-reveal style="--i:1" set:html={rich(t.safety.title)} />
+      <p class="lead" data-reveal style="--i:2">{t.safety.lead}</p>
+      <a class="link" href={pathFor(locale, 'safety')} data-reveal style="--i:3">{t.safety.more}<Arrow /></a>
+    </header>
+    <ol class="safety__list">
+      {t.safety.items.map((it, i) => (
+        <li data-reveal style={`--i:${(i % 2) + 1}`}>
+          <span class="safety__n num">{String(i + 1).padStart(2, '0')}</span>
+          <div>
+            <h3 class="h4">{it.title}</h3>
+            <p class="body small">{it.text}</p>
+          </div>
+        </li>
+      ))}
+    </ol>
+  </div>
+</section>
+<style>
+  .safety__head { max-width: 760px; display: grid; justify-items: start; }
+  .safety__head .title { margin-top: 20px; }
+  .safety__head .lead { margin-top: 22px; }
+  .safety__head .link { margin-top: 22px; }
+  .safety__list { display: grid; grid-template-columns: 1fr 1fr; gap: 0 clamp(24px, 4vw, 64px); margin-top: clamp(40px, 6vw, 72px); border-top: 1px solid var(--line-dark); }
+  .safety__list li { display: grid; grid-template-columns: 52px 1fr; gap: 16px; padding: 28px 0; border-bottom: 1px solid var(--line-dark); }
+  .safety__n { font-size: 26px; color: var(--amber); line-height: 1.1; }
+  .safety__list .h4 { color: var(--paper); }
+  .safety__list .body { margin-top: 8px; }
+  @media (max-width: 820px) { .safety__list { grid-template-columns: 1fr; } }
+</style>

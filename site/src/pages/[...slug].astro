@@ -1,0 +1,27 @@
+---
+import Base from '../layouts/Base.astro'
+import Home from '../components/pages/Home.astro'
+import PlatformPage from '../components/pages/PlatformPage.astro'
+import SafetyPage from '../components/pages/SafetyPage.astro'
+import PilotPage from '../components/pages/PilotPage.astro'
+import { dicts, locales, pathFor, type Locale, type PageKey } from '../i18n'
+
+export function getStaticPaths() {
+  const pages: PageKey[] = ['home', 'platform', 'safety', 'pilot']
+  return locales.flatMap(locale => pages.map(page => {
+    const path = pathFor(locale, page)
+    return { params: { slug: path === '/' ? undefined : path.slice(1) }, props: { locale, page } }
+  }))
+}
+
+interface Props { locale: Locale; page: PageKey }
+const { locale, page } = Astro.props
+const t = dicts[locale]
+const meta = page === 'home' ? t.meta : t.pages[page]
+---
+<Base locale={locale} page={page} title={meta.title} description={meta.description}>
+  {page === 'home' && <Home t={t} locale={locale} />}
+  {page === 'platform' && <PlatformPage t={t} locale={locale} />}
+  {page === 'safety' && <SafetyPage t={t} locale={locale} />}
+  {page === 'pilot' && <PilotPage t={t} locale={locale} />}
+</Base>

@@ -1,0 +1,36 @@
+---
+import type { Dict } from '../../i18n'
+interface Props { t: Dict }
+const { t } = Astro.props
+---
+<section class="faq section" id="faq">
+  <div class="container faq__grid">
+    <header>
+      <p class="eyebrow" data-reveal>{t.faq.eyebrow}</p>
+      <h2 class="title" data-reveal style="--i:1">{t.faq.title}</h2>
+    </header>
+    <div class="faq__list" data-reveal style="--i:1">
+      {t.faq.items.map(item => (
+        <details class="faq__item">
+          <summary><span class="faq__q">{item.q}</span><span class="faq__icon" aria-hidden="true"></span></summary>
+          <div class="faq__a"><p class="body">{item.a}</p></div>
+        </details>
+      ))}
+    </div>
+  </div>
+</section>
+<style>
+  .faq__grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.7fr); gap: clamp(28px, 5vw, 80px); align-items: start; }
+  .faq__grid .title { margin-top: 20px; }
+  .faq__list { border-top: 1px solid var(--line-strong); }
+  .faq__item { border-bottom: 1px solid var(--line); }
+  .faq__item summary { list-style: none; cursor: pointer; display: flex; justify-content: space-between; align-items: center; gap: 20px; padding: 22px 0; font-size: 19px; font-weight: 540; letter-spacing: -0.01em; }
+  .faq__item summary::-webkit-details-marker { display: none; }
+  .faq__icon { position: relative; width: 20px; height: 20px; flex-shrink: 0; }
+  .faq__icon::before, .faq__icon::after { content: ''; position: absolute; inset: 0; margin: auto; background: var(--ink); transition: transform .3s var(--ease); }
+  .faq__icon::before { width: 16px; height: 1.5px; }
+  .faq__icon::after { width: 1.5px; height: 16px; }
+  .faq__item[open] .faq__icon::after { transform: rotate(90deg); }
+  .faq__a { padding: 0 0 24px; max-width: 40em; }
+  @media (max-width: 860px) { .faq__grid { grid-template-columns: 1fr; } .faq__item summary { font-size: 17px; } }
+</style>

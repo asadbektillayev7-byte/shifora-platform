@@ -1,0 +1,78 @@
+---
+import { rich, type Dict } from '../../i18n'
+interface Props { t: Dict }
+const { t } = Astro.props
+const d = t.flow.diagram
+---
+<section class="flow section" id="flow">
+  <div class="container">
+    <header class="flow__head">
+      <p class="eyebrow" data-reveal>{t.flow.eyebrow}</p>
+      <h2 class="title" data-reveal style="--i:1" set:html={rich(t.flow.title)} />
+      <p class="lead" data-reveal style="--i:2">{t.flow.lead}</p>
+    </header>
+    <figure class="flow__diagram" data-reveal style="--i:2">
+      <svg viewBox="0 0 760 400" role="img" aria-label={`${d.clinic} · ${d.plan} · ${d.patient} · ${d.caregiver}`}>
+        <defs>
+          <marker id="flow-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--ink-3)" /></marker>
+          <marker id="flow-arrow-strong" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--teal-800)" /></marker>
+        </defs>
+        <!-- clinic -> plan (approval) -->
+        <path class="flow__edge flow__edge--strong" d="M120,116 C120,170 200,160 268,190" marker-end="url(#flow-arrow-strong)" />
+        <text class="flow__label" x="112" y="166" text-anchor="end">{d.e0}</text>
+        <!-- plan -> clinic (alerts) -->
+        <path class="flow__edge flow__edge--flow" d="M300,160 C260,110 230,100 222,84" marker-end="url(#flow-arrow)" />
+        <text class="flow__label" x="292" y="118">{d.e3}</text>
+        <!-- plan -> patient (reminders) -->
+        <path class="flow__edge flow__edge--flow" d="M470,160 C500,130 540,122 566,116" marker-end="url(#flow-arrow)" />
+        <text class="flow__label" x="486" y="140" text-anchor="end">{d.e1}</text>
+        <!-- patient -> plan (readings) -->
+        <path class="flow__edge flow__edge--flow" d="M640,116 C640,170 560,170 492,206" marker-end="url(#flow-arrow)" />
+        <text class="flow__label" x="614" y="188">{d.e2}</text>
+        <!-- plan -> caregiver (status) -->
+        <path class="flow__edge flow__edge--flow" d="M470,240 C500,290 520,300 538,312" marker-end="url(#flow-arrow)" />
+        <text class="flow__label" x="455" y="300" text-anchor="end">{d.e4}</text>
+        <!-- nodes -->
+        <g class="flow__node"><rect x="20" y="40" width="200" height="76" rx="14" /><text x="120" y="74" text-anchor="middle" class="flow__node-title">{d.clinic}</text><text x="120" y="96" text-anchor="middle" class="flow__node-sub">{d.clinicSub}</text></g>
+        <g class="flow__node"><rect x="540" y="40" width="200" height="76" rx="14" /><text x="640" y="74" text-anchor="middle" class="flow__node-title">{d.patient}</text><text x="640" y="96" text-anchor="middle" class="flow__node-sub">{d.patientSub}</text></g>
+        <g class="flow__node"><rect x="540" y="284" width="200" height="76" rx="14" /><text x="640" y="318" text-anchor="middle" class="flow__node-title">{d.caregiver}</text><text x="640" y="340" text-anchor="middle" class="flow__node-sub">{d.caregiverSub}</text></g>
+        <g class="flow__node flow__node--plan"><rect x="270" y="160" width="220" height="80" rx="14" /><rect x="270" y="160" width="6" height="80" rx="3" class="flow__node-accent" /><text x="384" y="196" text-anchor="middle" class="flow__node-title">{d.plan}</text><text x="384" y="218" text-anchor="middle" class="flow__node-sub">{d.planSub}</text></g>
+      </svg>
+    </figure>
+    <ol class="flow__steps">
+      {t.flow.steps.map((s, i) => (
+        <li data-reveal style={`--i:${i + 1}`}>
+          <span class="flow__n num">{s.n}</span>
+          <h3 class="h4">{s.title}</h3>
+          <p class="body small">{s.text}</p>
+        </li>
+      ))}
+    </ol>
+  </div>
+</section>
+<style>
+  .flow__head { max-width: 760px; }
+  .flow__head .title { margin-top: 20px; }
+  .flow__head .lead { margin-top: 22px; }
+  .flow__diagram { margin: clamp(36px, 5vw, 64px) auto 0; max-width: 900px; }
+  .flow__diagram svg { width: 100%; height: auto; font-family: var(--font-sans); }
+  .flow__edge { fill: none; stroke: var(--ink-3); stroke-width: 1.4; }
+  .flow__edge--strong { stroke: var(--teal-800); stroke-width: 2; }
+  .flow__edge--flow { stroke-dasharray: 5 6; animation: dash 1.6s linear infinite; }
+  @keyframes dash { to { stroke-dashoffset: -22; } }
+  @media (prefers-reduced-motion: reduce) { .flow__edge--flow { animation: none; } }
+  .flow__label { font-size: 12.5px; fill: var(--ink-3); font-style: italic; font-family: var(--font-serif); font-size: 14px; }
+  .flow__node rect { fill: var(--white); stroke: var(--line-strong); stroke-width: 1; }
+  .flow__node-title { font-size: 15px; font-weight: 600; fill: var(--ink); letter-spacing: -0.01em; }
+  .flow__node-sub { font-size: 12px; fill: var(--ink-3); }
+  .flow__node--plan rect { fill: var(--teal-800); stroke: var(--teal-800); }
+  .flow__node--plan .flow__node-accent { fill: var(--amber); stroke: none; }
+  .flow__node--plan .flow__node-title { fill: var(--paper); }
+  .flow__node--plan .flow__node-sub { fill: var(--teal-200); }
+  .flow__steps { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 32px 28px; margin-top: clamp(40px, 6vw, 72px); border-top: 1px solid var(--line); }
+  .flow__steps li { padding-top: 26px; display: grid; gap: 10px; align-content: start; position: relative; }
+  .flow__steps li::before { content: ''; position: absolute; top: -1px; left: 0; width: 44px; height: 2px; background: var(--teal-800); }
+  .flow__n { font-size: 30px; color: var(--teal-700); line-height: 1; }
+  @media (max-width: 900px) { .flow__steps { grid-template-columns: 1fr 1fr; } }
+  @media (max-width: 520px) { .flow__steps { grid-template-columns: 1fr; } .flow__label { font-size: 17px; } .flow__node-title { font-size: 17px; } .flow__node-sub { font-size: 14px; } }
+</style>
