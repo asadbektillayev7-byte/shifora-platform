@@ -1,7 +1,7 @@
 /* Site-wide settings. Everything a non-developer may need to change lives here. */
 
 /** Public URL of the product (the care platform). Used for "open the demo clinic" links. */
-export const APP_URL = 'https://shifora.vercel.app'
+export const APP_URL = 'https://shifora-platform.vercel.app'
 
 /** Contact email shown in the footer and used by the demo-request form when no endpoint is set. */
 export const CONTACT_EMAIL = 'salom@shifora.uz'
